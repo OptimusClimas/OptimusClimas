@@ -170,7 +170,7 @@ def visualizegridtemperature(predf, first=False, last=True, i=None, min=-30, max
         else:
             t = i
         predfnew = predf
-        if diff == True:
+        if diff:
             # calculate difference grid
             predfnew[t] = predf[t] - predf[0]
             min = 0
@@ -212,7 +212,7 @@ def visualizegridtemperature(predf, first=False, last=True, i=None, min=-30, max
         print('plotting')
         plt.rcParams.update({'font.size': 30})
         # fill map with temperature values/plot heatmap
-        cs = m.contourf(x, y, predfscaled3, 50, cmap=plt.cm.Reds, extend='both', vmin=min, vmax=max)
+        cs = m.contourf(x, y, predfscaled3, 50, cmap=plt.cm.jet, extend='both', vmin=min, vmax=max)
         cb = m.colorbar(cs)
         # modify map accordingly to minimum and maximum given
         plt.clim(min, max)
@@ -233,4 +233,3 @@ def visualizegridtemperature(predf, first=False, last=True, i=None, min=-30, max
             cv2.imwrite("heatmap.jpg", cropped_image)
             print('heatmap cropped')
             print(datetime.datetime.now())
-

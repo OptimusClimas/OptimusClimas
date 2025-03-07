@@ -7,11 +7,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import copy
 from numba import jit
+from scipy.ndimage import gaussian_filter
+import math
 # import of needed functions from other modules
-from KlimaUi.climatesimulationAI.Training.Training import Training
-from KlimaUi.climatesimulationAI.Training.PreProcessing import PreprocessingTrainData
+from KlimaUi.KlimaUi.climatesimulationAI.Training.Training import Training
+from KlimaUi.KlimaUi.climatesimulationAI.Training.PreProcessing import PreprocessingTrainData
 
-
+def creatediff(predfin):
+    diffs = np.ones(55296)
+    for i in range(55296):
+        diffs[i] = predfin[99, i] - predfin[0, i]
+    return diffs
 def calc_future_emissions(emission, years, ghgchanges):
     # generate emission time series based on exponential development, assumed increase or decrease and current values
     # of greenhouse gas (ghg) emissions emission: index for chosen ghg, integer:
@@ -941,24 +947,28 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
 
                 newer = copy.deepcopy(temperature_denorm)
                 for i in range(newer[0, :].size):
-                    if (temperature_denorm[triggeryears[len(triggeryears) - 1] + 8, i] - temperature_denorm[
-                        triggeryears[len(triggeryears) - 1] + 2, i]) < 0:
-                        newer[triggeryears[len(triggeryears) - 1] + 2:, i] = (temperature_denorm[
-                                                                              triggeryears[len(triggeryears) - 1] + 2:,
-                                                                              i] - (temperature_denorm[triggeryears[
-                                                                                                           len(triggeryears) - 1] + 8, i] -
-                                                                                    temperature_denorm[triggeryears[
-                                                                                                           len(triggeryears) - 1] + 2, i])) + 0.5
+                    ked = triggeryears[len(triggeryears) - 1] + 8
+                    led = triggeryears[len(triggeryears) - 1] + 2
+                    med = triggeryears[len(triggeryears) - 1] + 20
+                    if ked>99:
+                        ked = 99
+                    if led>99:
+                        led = 99
+                    if (temperature_denorm[ked, i] - temperature_denorm[led, i]) < 0:
+                    #if (temperature_denorm[triggeryears[len(triggeryears) - 1] + 8, i] - temperature_denorm[
+                     #   triggeryears[len(triggeryears) - 1] + 2, i]) < 0:
+                        newer[led:, i] = (temperature_denorm[
+                                                                              led:,
+                                                                              i] - (temperature_denorm[ked, i] -
+                                                                                    temperature_denorm[led, i])) + 0.5
                     else:
-                        newer[triggeryears[len(triggeryears) - 1] + 2:, i] = (temperature_denorm[
-                                                                              triggeryears[len(triggeryears) - 1] + 2:,
-                                                                              i] + (temperature_denorm[triggeryears[
-                                                                                                           len(triggeryears) - 1] + 8, i] -
-                                                                                    temperature_denorm[triggeryears[
-                                                                                                           len(triggeryears) - 1] + 2, i])) + 0.5
-                    newer[triggeryears[len(triggeryears) - 1] + 8:triggeryears[len(triggeryears) - 1] + 20,
+                        newer[led:, i] = (temperature_denorm[
+                                                                              led:,
+                                                                              i] + (temperature_denorm[ked, i] -
+                                                                                    temperature_denorm[led, i])) + 0.5
+                    newer[ked:med,
                     i] = movingaverage_new(
-                        newer[triggeryears[len(triggeryears) - 1] + 8:triggeryears[len(triggeryears) - 1] + 20, i],
+                        newer[ked:med, i],
                         N=10, only_historical=True)
 
                     newer[triggeryears[0]:, i] = movingaverage(newer[triggeryears[0]:, i], N=15)
@@ -969,9 +979,12 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                         newer[:triggeryears[0], i] = postprocessingtemp[:triggeryears[0], i]
                         newer[:, i] = movingaverage_new(newer[:, i], N=8, only_historical=True)
 
+                    fed = triggeryears[0] + 33
+                    if fed > 99:
+                        fed = 99
                     if rainforesttriggerd and permafrosttriggerd:
                         if triggeryears[1] - triggeryears[0] > 23:
-                            newer[triggeryears[0]:triggeryears[0] + 33, i] = newer[triggeryears[0]:triggeryears[0] + 33,
+                            newer[triggeryears[0]:fed, i] = newer[triggeryears[0]:fed,
                                                                              i] + 0.6
                             newer[:, i] = movingaverage(newer[:, i],
                                                         N=7)
@@ -1008,7 +1021,21 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                 newtemp = np.ones(temperature_denorm.shape)
                 for i in range(temperature_denorm[0, :].size):
                     newtemp[:, i] = movingaverage(temperature_denorm[:, i], N=2)
-                output = newtemp
+                #output = newtemp
+            oldtemp = copy.deepcopy(newtemp)
+            if withcmip6:
+                if awi:
+                    u = 73728
+                else:
+                    u = 55297
+            else:
+                u = 115201
+            newpredf = np.ones(newtemp.shape)
+            for i in range(100):
+                newpredf[i, :u-1] = newtemp[i, :u-1] - (math.sqrt(99 - (i)) * 0.85)
+            newpredf[:, :u-1] = newpredf[:, :u-1] + 17
+            newtemp[:, :u-1] = gaussian_filter(newpredf[:, :u-1], sigma=2)
+            output = newtemp
 
             if predsea:
                 # sea level simulation
@@ -1017,14 +1044,7 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                 if permafrosttriggerd:
                     X = copy.deepcopy(Xnew)
                 gafsizesea = 20
-                # outputsize accordningly to used grid
-                if withcmip6:
-                    if awi:
-                        u = 73728
-                    else:
-                        u = 55297
-                else:
-                    u = 115201
+                # outputsize accordingly to used grid
                 temperature_denorm = output
 
                 # calculate combined GAF only for global temperature

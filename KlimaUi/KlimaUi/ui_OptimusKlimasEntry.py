@@ -28,12 +28,12 @@ def displayheatmap():
     print('new heatmap in progress ...')
     try:
         visuals.visualizegridtemperature(predf[0][:, :outputsize], last=False, first=False,
-                                     i=uiOutput.Slider_year.sliderPosition(),
-                                     fig=fig, nominmax=True)
+                                         i=uiOutput.Slider_year.sliderPosition(),
+                                         fig=fig, nominmax=True)
     except:
         visuals.visualizegridtemperature(predf[:, :outputsize], last=False, first=False,
-                                     i=uiOutput.Slider_year.sliderPosition(),
-                                     fig=fig, nominmax=True)
+                                         i=uiOutput.Slider_year.sliderPosition(),
+                                         fig=fig, nominmax=True)
     # updates the year label using the Slider Position
     uiOutput.label_selyear.setText(str(2014 + uiOutput.Slider_year.sliderPosition()))
     # updates label used as variable to "a" for absolute temperature heatmap is displayed
@@ -56,6 +56,7 @@ class Ui_MainWindow(object):
 
     def closeEvent(self):
         sys.exit(0)
+
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
@@ -266,25 +267,43 @@ stylesheet = """
         }
     """
 
+def show_info_messagebox():
+   msg = QMessageBox()
+   msg.setIcon(QMessageBox.Icon.Information)
+   msg.setText("All processes of the last simulation will finish soon. Please wait for about 10 seconds.")
+   msg.setWindowTitle("Restarting simulation")
+   msg.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
+   retval = msg.exec()
 
 def restart():
     # restarts whole application
-    print(['python'] + sys.argv)
-    os.execv(sys.executable, ['python'] + ['ui_OptimusKlimasEntry.py'])  #'sys.argv
+    try:
+        threadheatmap.stop()
+    except:
+        pass
+    MainOutput.close()
+    show_info_messagebox()
+    time.sleep(10)
+    MainInput.show()
 
 
 class myThreadheatmap(threading.Thread):
     # thread for regularly updating the heatmap
-    def __init__(self, threadID, name, counter):
+    def __init__(self, threadID, name, counter,*args, **kwargs):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.name = name
         self.counter = counter
+        super().__init__(*args, **kwargs)
+        self._stopper = threading.Event()
+
 
     def run(self):
         # updates the heatmap in 5 seconds intervals if the difference option is not displayed
         # (checks via label_valheatmap equals "d")
         while True:
+            if self.stopped():
+                return
             time.sleep(5)
             if str(uiOutput.label_valheatmap.text()) == "d":
                 pass
@@ -292,10 +311,10 @@ class myThreadheatmap(threading.Thread):
                 uiOutput.label_empty.setPixmap(QPixmap(u"heatmap.jpg"))
 
     def stop(self):
-        self._stop.set()
+        self._stopper.set()
 
     def stopped(self):
-        return self._stop.isSet()
+        return self._stopper.is_set()
 
 
 class threaddiffmap(threading.Thread):
@@ -326,14 +345,14 @@ class threaddiffmap(threading.Thread):
         # generate, safe and display image file using vis from visuals.py
         try:
             visuals.visualizegridtemperature(np.expand_dims(diff, 0), first=True, last=False, nc=True,
-                                         i=uiOutput.Slider_year.sliderPosition(),
-                                         fig=fig, min=0, max=1,
-                                         diff=False, nominmax=True, savediff=True)
+                                             i=uiOutput.Slider_year.sliderPosition(),
+                                             fig=fig, min=0, max=11,
+                                             diff=False, nominmax=True, savediff=True)
         except:
             visuals.visualizegridtemperature(np.expand_dims(diff, 0), first=True, last=False, nc=True,
-                                         i=uiOutput.Slider_year.sliderPosition(), min=0, max=1,
-                                         fig=fig,
-                                         diff=False, nominmax=True, savediff=True)
+                                             i=uiOutput.Slider_year.sliderPosition(), min=0, max=11,
+                                             fig=fig,
+                                             diff=False, nominmax=False, savediff=True)
         # set label (functioning as variable) to "d" for difference temperature heatmap
         uiOutput.label_valheatmap.setText("d")
 
@@ -342,7 +361,6 @@ class threaddiffmap(threading.Thread):
 
     def stopped(self):
         return self._stop.isSet()
-
 
 class myThreadSim(threading.Thread):
     # thread for handling the simulation
@@ -389,40 +407,43 @@ class myThreadSim(threading.Thread):
             modelname = "FrederikeSSTGADFGRIBhist101.h5"
             nc = True
             predf = simulation.pred(ghgchanges=ghgchangesssp19, start=2014, end=2114, modelname=modelname,
-                             withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
-                             anaerobe=useanaerobe, rainforestused=rainforest,
-                             partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, new=True, with_oldmodel=False,
-                             awi=False, wais=wais)
+                                    withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
+                                    anaerobe=useanaerobe, rainforestused=rainforest,
+                                    partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, new=True,
+                                    with_oldmodel=False,
+                                    awi=False, wais=wais)
         elif ssp12:
             print('negative emission scenario')
             modelname = "FrederikeSSTGADFGRIBhist101.h5"
             nc = True
             predf = simulation.pred(ghgchanges=ghgchangesssp126, start=2014, end=2114, modelname=modelname,
-                             withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
-                             anaerobe=useanaerobe, rainforestused=rainforest,
-                             partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, new=True, with_oldmodel=False,
-                             wais=wais)
+                                    withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
+                                    anaerobe=useanaerobe, rainforestused=rainforest,
+                                    partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, new=True,
+                                    with_oldmodel=False,
+                                    wais=wais)
         elif ssp2:
             print('negative emission scenario')
             modelname = "FrederikeSSTGADFGRIBhist101.h5"
             nc = True
             predf = simulation.pred(ghgchanges=ghgchangesssp2, start=2014, end=2114, modelname=modelname,
-                             withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
-                             anaerobe=useanaerobe, rainforestused=rainforest,
-                             partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, new=True, with_oldmodel=False,
-                             wais=wais)
+                                    withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
+                                    anaerobe=useanaerobe, rainforestused=rainforest,
+                                    partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, new=True,
+                                    with_oldmodel=False,
+                                    wais=wais)
         elif ssp3:
             predf = simulation.pred(ghgchanges=ghgchangesssp3, start=2014, end=2114, modelname=modelname,
-                             withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
-                             anaerobe=useanaerobe, rainforestused=rainforest,
-                             partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, awi=False,
-                             wais=wais)
+                                    withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
+                                    anaerobe=useanaerobe, rainforestused=rainforest,
+                                    partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, awi=False,
+                                    wais=wais)
         elif ssp5:
             predf = simulation.pred(ghgchanges=ghgchangesssp5, start=2014, end=2114, modelname=modelname,
-                             withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
-                             anaerobe=useanaerobe, rainforestused=rainforest,
-                             partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, awi=False,
-                             wais=wais)
+                                    withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
+                                    anaerobe=useanaerobe, rainforestused=rainforest,
+                                    partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, awi=False,
+                                    wais=wais)
         else:
             # prepare simulation with manually entered scenario #
             # init variables for manual simulation
@@ -450,10 +471,10 @@ class myThreadSim(threading.Thread):
 
                 # start prepared simulation with manually entered scenario
                 predf = simulation.pred(ghgchanges=ghgs, start=2014, end=2114, modelname=modelname,
-                                 withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
-                                 anaerobe=useanaerobe, rainforestused=rainforest,
-                                 partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, new=newuse,
-                                 with_oldmodel=oldmodeluse, awi=False, wais=wais, newsea=newsea)
+                                        withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
+                                        anaerobe=useanaerobe, rainforestused=rainforest,
+                                        partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, new=newuse,
+                                        with_oldmodel=oldmodeluse, awi=False, wais=wais, newsea=newsea)
             else:
                 # print error message if model emission range was exceeded
                 print('The possible range of changes from -90 % to 450 % was exceeded -> No Simulation possible!')
@@ -484,6 +505,7 @@ class myThreadSim(threading.Thread):
                 Ui_Output.draw(uiOutput, years, sim[1], "SeaLevel")
             else:
                 sim[0] = predf[:, outputsize]
+
             # display simulated global temperature rise onto graph
             Ui_Output.draw(uiOutput, years, sim[0], "Temperatur")
             print(datetime.datetime.now())
@@ -495,20 +517,23 @@ class myThreadSim(threading.Thread):
             if sea:
                 print(nc)
                 visuals.visualizegridtemperature(predf[0][:, :outputsize], last=False,
-                                             i=uiOutput.Slider_year.sliderPosition(),
-                                             fig=fig, diff=False, nc=nc, nominmax=True, awi=False)
+                                                 i=uiOutput.Slider_year.sliderPosition(),
+                                                 fig=fig, diff=False, nc=nc, nominmax=True, awi=False)
             else:
-                visuals.visualizegridtemperature(predf[:, :outputsize], last=False, i=uiOutput.Slider_year.sliderPosition(),
-                                             fig=fig, diff=False, nc=nc, nominmax=True, awi=False)
+                visuals.visualizegridtemperature(predf[:, :outputsize], last=False,
+                                                 i=uiOutput.Slider_year.sliderPosition(),
+                                                 fig=fig, diff=False, nc=nc, nominmax=True, awi=False)
             # display heatmap image file in label
             uiOutput.label_empty.setPixmap(QPixmap(u"heatmap.jpg"))
             # start threads for displaying heatmaps
             threaddiffheatmap = threaddiffmap(3, "thread-diffmap", 3)
             threaddiffheatmap.daemon = True
             threaddiffheatmap.start()
+            global threadheatmap
             threadheatmap = myThreadheatmap(2, "Thread-2", 2)
             threadheatmap.daemon = True
             threadheatmap.start()
+            uiOutput.button_simotherscen.setVisible(True)
 
     def stop(self):
         self._stop.set()
@@ -553,6 +578,7 @@ class Ui_Output(object):
         self.button_simotherscen.setObjectName(u"button_simotherscen")
         self.button_simotherscen.setGeometry(QRect(570, 650, 381, 71))
         self.button_simotherscen.setFont(font)
+        self.button_simotherscen.setVisible(False)
         self.button_simotherscen.clicked.connect(restart)
         # init button_absolutetemp for change to absolute temperature map
         self.button_absolutetemp = QPushButton(self.centralwidget)  # 710, 210, 221, 16
@@ -666,7 +692,6 @@ class Ui_Output(object):
         self.label_globalmeansea.setText(QCoreApplication.translate("MainWindow", u"globale mean sea level", None))
         self.label_valheatmap.setText("")
 
-
     def draw(self, x, y, plt):
         # drawing for plots in graphic views,
         # inputs: x- and y-values, "SeaLevel" (if sea level is supposed to be displayed) or
@@ -715,7 +740,7 @@ def startsim():
     if not (ssp19 or ssp12 or ssp2 or ssp3 or ssp5):
         try:
             global co2
-            co2 = int(ui.lineEdit_co2text())
+            co2 = int(ui.lineEdit_co2.text())
             global ch4
             ch4 = int(ui.lineEdit_ch4.text())
             global bc
@@ -730,26 +755,26 @@ def startsim():
             print('Wrong format of input has been entered, emissions have to be integers or floats!')
 
     # init values from checkboxes (which aspects are to be considered for the simulation)
-    global tippingpoints # if tipping points are supposed to be considered
+    global tippingpoints  # if tipping points are supposed to be considered
     tippingpoints = ui.checkBox_tippingpoints.isChecked()
-    global permafrost # if the tipping point collapse of the boreal permafrost is supposed to be considered
+    global permafrost  # if the tipping point collapse of the boreal permafrost is supposed to be considered
     permafrost = ui.checkBox_permafrost.isChecked()
-    global wais # if the tipping point collapse of the west antarctic ice shield is supposed to be considered
+    global wais  # if the tipping point collapse of the west antarctic ice shield is supposed to be considered
     wais = ui.CheckBox_wais.isChecked()
-    global aerobe # if aerobe conditions are assumed for a possible collapse of the boreal permafrost
+    global aerobe  # if aerobe conditions are assumed for a possible collapse of the boreal permafrost
     aerobe = ui.checkBox_anaerobe.isChecked()
-    global anaerobe # if anaerobe conditions are assumed for a possible collapse of the boreal permafrost
+    global anaerobe  # if anaerobe conditions are assumed for a possible collapse of the boreal permafrost
     anaerobe = ui.checkBox_aeroebe.isChecked()
-    global partlyanaerobe # if partly anaerobe conditions are assumed for a possible collapse of the boreal permafrost
+    global partlyanaerobe  # if partly anaerobe conditions are assumed for a possible collapse of the boreal permafrost
     partlyanaerobe = ui.checkbox_partlyaerobe.isChecked()
-    global rainforest # if the tipping point die-off of the amazonas rainforest is supposed to be considered
+    global rainforest  # if the tipping point die-off of the amazonas rainforest is supposed to be considered
     rainforest = ui.checkBox_amazonas.isChecked()
-    global partanaerobe # if values was entered, for which percentage of the area anaerobe conditions are assumed
+    global partanaerobe  # if values was entered, for which percentage of the area anaerobe conditions are assumed
     try:
         partanaerobe = float(ui.lineEdit_partanerobe.text())
     except:
         partanaerobe = None
-    global sea # if sea level rise is to be simulated
+    global sea  # if sea level rise is to be simulated
     sea = ui.checkBox_sealevel.isChecked()
     # init ghgs as list
     try:
@@ -828,6 +853,7 @@ def startsim():
         global fig
         fig = plt.figure(figsize=(16, 35))
         # start thread to handle and start the simulation
+        global thread1
         thread1 = myThreadSim(1, "Thread-1", 1)
         thread1.daemon = True
         thread1.start()
