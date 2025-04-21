@@ -7,4 +7,3 @@ All our models and datasets needed for the GUI are hosted on [Hugging Face](http
 To use the Graphical User Interface of Optimus Climas start ui_OptimusKlimasEntry.py. 
 To reproduce the figures in our publication see figures.ipynb.
 To run your own experiments see manualuse.ipynb.
-To train your own model with our architecture see trainmodel.ipynb.
