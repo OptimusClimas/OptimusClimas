@@ -2,22 +2,25 @@
 # all simulation intern functions are based here
 
 # imports of needed libraries for the simulation
-import tensorflow as tf
+import os
 import numpy as np
-import matplotlib.pyplot as plt
 import copy
 from numba import jit
 from scipy.ndimage import gaussian_filter
 import math
 # import of needed functions from other modules
-from KlimaUi.KlimaUi.climatesimulationAI.Training.Training import Training
-from KlimaUi.KlimaUi.climatesimulationAI.Training.PreProcessing import PreprocessingTrainData
+
+from KlimaUi.climatesimulationAI.Training.Training import Training
+from KlimaUi.climatesimulationAI.Training.PreProcessing import PreprocessingTrainData
+
 
 def creatediff(predfin):
     diffs = np.ones(55296)
     for i in range(55296):
         diffs[i] = predfin[99, i] - predfin[0, i]
     return diffs
+
+
 def calc_future_emissions(emission, years, ghgchanges):
     # generate emission time series based on exponential development, assumed increase or decrease and current values
     # of greenhouse gas (ghg) emissions emission: index for chosen ghg, integer:
@@ -65,10 +68,12 @@ def my_norm(a, kind):
 
     # loading minima and maxima from training data
     maxtrainReal = np.load(
-        '../KlimaUI/climatesimulationAI/ForPreprocessing/max_train.npy',
+        #'../KlimaUI/climatesimulationAI/ForPreprocessing/max_train.npy',
+        os.path.join('KlimaUI', 'climatesimulationAI', 'ForPreprocessing', 'max_train.npy'),
         mmap_mode='r+')
     mintrainReal = np.load(
-        '../KlimaUI/climatesimulationAI/ForPreprocessing/min_train.npy',
+        #'../KlimaUI/climatesimulationAI/ForPreprocessing/min_train.npy',
+        os.path.join('KlimaUI', 'climatesimulationAI', 'ForPreprocessing', 'min_train.npy'),
         mmap_mode='r+')
 
     ratio = 2 / (maxtrainReal[kind] - mintrainReal[kind])
@@ -107,7 +112,7 @@ def denorm(a, startvalue, sealevel, nccmip6, new=False, fred93=False, newsea=Tru
     # scaling the shifted data with the needed factor for denormalisation
     denormalized_temp = positiveshift * factor
     if newsea:
-        denormalized_sealevel = positiveshift * (2200000 * 2.67 * 3.7 * 65)
+        denormalized_sealevel = positiveshift * (2200000 * 2.67 * 3.7 * 60)#65)
     else:
         denormalized_sealevel = positiveshift * (2200000 * 2.67 * 3.7 * 3)
     # shifting the scaled data by the needed calculated rate
@@ -153,7 +158,7 @@ def postprocessing(pred_data, years, i, sealevel=False, withcmip6=False, new=Fal
         else:
             # start values for grid points imported from training data
             startvalue = np.load(
-                '../KlimaUi/climatesimulationAI/Training/PreProcessing/trainingdata/train_data_1880_2014.npy',
+                'KlimaUi/climatesimulationAI/Training/PreProcessing/trainingdata/train_data_1880_2014.npy',
                 mmap_mode='r+')[
                              i, 83] - 273.15
     else:
@@ -166,12 +171,12 @@ def postprocessing(pred_data, years, i, sealevel=False, withcmip6=False, new=Fal
         else:
             if awi:
                 startvalue = np.load(
-                    'climatesimulationAI/Training/PreProcessing/trainingdata/train_data_2014_2100_awi.npy',
+                    'KlimaUI/climatesimulationAI/Training/PreProcessing/trainingdata/train_data_2014_2100_awi.npy',
                     mmap_mode='r+')[
                                  i, 83] - 273.15
             else:
                 startvalue = np.load(
-                    'climatesimulationAI/Training/PreProcessing/trainingdata/train_data_2014_2100_ssp2.npy',
+                    'KlimaUI/climatesimulationAI/Training/PreProcessing/trainingdata/train_data_2014_2100_ssp2.npy',
                     mmap_mode='r+')[i, 83] - 273.15
     if sealevel:
         startvalue = 210.9  # start value for global mean sea level
@@ -193,7 +198,10 @@ def preprocessing(future_inputa, years, gafsize, numberoffeatures, actfactora, s
     # gafsize: squared is the size of the final gaf matrices, int
     # numberoffeatures: amount of features in the inputs, int
     # actfactora: factor the sigmoid is stretched by in the preactivation, float
-    # s: int, for what? (optional)
+    # s: kind - index for value being normalised (needed for the corresponding minima and maxima), int (optional)
+    #          [0] ghg, [1] co2, [2] ch4, [3] bc, [4] so2, [5] oc
+
+    from KlimaUi.climatesimulationAI.Training.PreProcessing import PreprocessingTrainData
 
     # init array for 5 year frames
     framesall5 = np.ones((future_inputa[:, 0].size, int(years.size / 5), 5))
@@ -313,10 +321,10 @@ def calc_withrainforestemissions(future_inputs, rainforestemission_co2, temperat
     # gafsize: size of the GAF matrices, int
     # numberoffeatures: amount of features (input parameters) to be used for the simulation, int
     # actfactor: factor used for pre-activation to multiply sigmoid
-    # p_rainforest: geo-reference points for the amazon rainforest (translated into internal coordinates), np.array
+    # p_rainforest: geo-reference points for the amazonas rainforest (translated into internal coordinates), np.array
 
     # calculate the trigger year of and influenced emissions by the tipping point
-    # die-off of the amazon rainforest and the corresponding gaf matrices as final input for the model
+    # die-off of the amazonas rainforest and the corresponding gaf matrices as final input for the model
     # to proceed the simulation
     tippingpointrainforest = 30.26  # regional temperature risen by 4 °C relative to pre-industrial level
     rainforesttriggerd = False
@@ -325,7 +333,9 @@ def calc_withrainforestemissions(future_inputs, rainforestemission_co2, temperat
     temperature_denormtemp = np.ones(temperature_pred.shape)
     for i in range(temperature_pred[0, :].size - 1):
         temperature_denormtemp[:, i] = denorm(temperature_pred[:, i],
-                                              np.load('climatesimulationAI/Training/PreProcessing/trainingdata/train_data_2014_2100_ssp2.npy', mmap_mode='r+')[i, 0] - 273.15,
+                                              np.load(
+                                                  'KlimaUi/climatesimulationAI/Training/PreProcessing/trainingdata/train_data_2014_2100_ssp2.npy',
+                                                  mmap_mode='r+')[i, 0] - 273.15,
                                               sealevel=False,
                                               nccmip6=True,
                                               fred93=True)
@@ -349,7 +359,7 @@ def calc_withrainforestemissions(future_inputs, rainforestemission_co2, temperat
         if temp > tippingpointrainforest and rainforesttriggerd == False:
             rainforesttriggerd = True
             triggeryearrainforest = (i * 5) - 1
-            print('Amazon Rainforest dieback was triggerd in year ' + str(start + triggeryearrainforest))
+            print('Amazonas Rainforest dieback was triggerd in year ' + str(start + triggeryearrainforest))
 
             #calculate emissions with the additional emissions from the tipping point
             withrainforest_future_inputs = copy.deepcopy(future_inputs)
@@ -400,7 +410,9 @@ def calc_withpermafrostemissions(future_inputs, p, permafrostemission_co2, tempe
     temperature_denormtemp = np.ones(temperature_pred.shape)
     for i in range(temperature_pred[0, :].size - 1):
         temperature_denormtemp[:, i] = denorm(temperature_pred[:, i],
-                                              np.load('climatesimulationAI/Training/PreProcessing/trainingdata/train_data_2014_2100_ssp2.npy', mmap_mode='r+')[i, 0] - 273.15,
+                                              np.load(
+                                                  'KlimaUi/climatesimulationAI/Training/PreProcessing/trainingdata/train_data_2014_2100_ssp2.npy',
+                                                  mmap_mode='r+')[i, 0] - 273.15,
                                               sealevel=False,
                                               nccmip6=True,
                                               fred93=True)
@@ -501,8 +513,8 @@ def transformgeocoordinates(lat, lon):
     # lon: longitude to be transformer, float
 
     # load lon/lat grids
-    lons = np.load('lonnetcdfnmip6new.npy', mmap_mode='r+') - 180
-    lats = np.load('latnetcdfnmip6new.npy', mmap_mode='r+')
+    lons = np.load('KlimaUi/lonnetcdfnmip6new.npy', mmap_mode='r+') - 180
+    lats = np.load('KlimaUi/latnetcdfnmip6new.npy', mmap_mode='r+')
     # init variables
     lat_in = None
     lon_in = None
@@ -573,15 +585,14 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
     #   in %, float, HAS EFFECT ONLY IF partly_anaerobe=true!
     # withpermafrost: whether to take the tipping point collapse of the boreal permafrost into account, boolean (default true)
 
-
     # set outputsize accordingly to the used grid
     if not nccmip6:
         outputsize = 115201
     withcmip6 = nccmip6
 
     # if only emission data is to be calculated, only input needs to be calculated
-    if onlyemidata:
-        onlyindata = True
+    #if onlyemidata:
+    #onlyindata = True
 
     # if ghg change is given as integer, use that integer for all ghgs
     if type(ghgchanges) != int:
@@ -617,7 +628,6 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
             newsea = False
             over200 = True
 
-
         years = np.arange(start, end)
         # calculate the future emission development based on the given ghg changes
         future_inputs = np.ones((numberoffeatures, years.size))
@@ -641,18 +651,18 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                 if withtippingpoints:
                     frederike = Training.buildSST(gafsize=gafsize, outputsize=outputsize, printsum=False,
                                                   modelname=modelname, features=X, new=False)
-                    frederike.load_weights('../KlimaUi/climatesimulationAI/models/' + modelnametippingpoints)
+                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelnametippingpoints)
                 else:
                     frederike = Training.buildSST(gafsize=gafsize, outputsize=outputsize, printsum=False,
                                                   modelname=modelname, features=X, new=buildnew)
-                    frederike.load_weights('../KlimaUi/climatesimulationAI/models/' + modelname)
+                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelname)
             elif method_Conv:
                 # build model using CNN architecture
                 frederike = Training.buildConv(gafsize=gafsize, inputshape=X[0].shape, printsum=False)
                 if withtippingpoints:
-                    frederike.load_weights('../KlimaUi/climatesimulationAI/models/' + modelnametippingpoints)
+                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelnametippingpoints)
                 else:
-                    frederike.load_weights('../KlimaUi/climatesimulationAI/models/' + modelname)
+                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelname)
 
             # init variables
             temperature_pred = np.ones((X[:, 0, 0, 0].size, outputsize))
@@ -871,16 +881,16 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                 if over200:
                     frederike = Training.buildSST(gafsize=gafsize, outputsize=outputsize, printsum=False,
                                                   modelname=modelname, features=X, new=False)
-                    frederike.load_weights('../KlimaUi/climatesimulationAI/models/' + modelnametippingpoints)
+                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelnametippingpoints)
                 else:
                     frederike = Training.buildSST(gafsize=gafsize, outputsize=55297, printsum=False,
                                                   modelname=modelnametippingpoints, features=Xnew, new=buildnew)
-                    frederike.load_weights('../KlimaUi/climatesimulationAI/models/' + modelname)
+                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelname)
                 temperature_pred = frederike.predict(Xnew)
                 temperature_pred_old = frederike.predict(oldX)
                 frederike = Training.buildSST(gafsize=gafsize, outputsize=115201, printsum=False,
                                               modelname="FrederikeSSTGADFGRIBwithact88.h5", features=Xnew, new=False)
-                frederike.load_weights('../KlimaUi/climatesimulationAI/models/' + "FrederikeSSTGADFGRIBwithact88.h5")
+                frederike.load_weights('KlimaUI/climatesimulationAI/models/' + "FrederikeSSTGADFGRIBwithact88.h5")
                 temperature_pred[:, 55296] = frederike.predict(Xnew)[:, 115200]
                 temperature_pred_old[:, 55296] = frederike.predict(oldX)[:, 115200]
 
@@ -892,14 +902,14 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                         frederike = Training.buildSST(gafsize=gafsize, outputsize=outputsize, printsum=False,
                                                       modelname=modelname, features=X, new=False)
                         frederike.load_weights(
-                            '../KlimaUi/climatesimulationAI/models/' + modelnametippingpoints)
+                            'KlimaUI/climatesimulationAI/models/' + modelnametippingpoints)
                         temperature_pred = frederike.predict(X)
                     else:
                         pass
                     frederike = Training.buildSST(gafsize=gafsize, outputsize=115201, printsum=False,
                                                   modelname="FrederikeSSTGADFGRIBwithact88.h5", features=X, new=False)
                     frederike.load_weights(
-                        '../KlimaUi/climatesimulationAI/models/' + "FrederikeSSTGADFGRIBwithact88.h5")
+                        'KlimaUI/climatesimulationAI/models/' + "FrederikeSSTGADFGRIBwithact88.h5")
                     temperature_pred[:, 55296] = frederike.predict(X)[:, 115200]
                     temperature_pred_old = copy.deepcopy(temperature_pred)
                     temperature_pred_old[:, 55296] = frederike.predict(oldX)[:, 115200]
@@ -907,7 +917,6 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
             if permafrosttriggerd:
                 # init variable
                 triggeryearspermafrost = np.array(triggeryearspermafrost)
-
             # denormalisation and postprocessing of the temperature prediction
             temperature_denorm = np.ones((years.size, temperature_pred[0, :].size))
             cmip6postproc = True
@@ -915,15 +924,13 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                 temperature_denorm[:, i] = postprocessing(temperature_pred[:, i], years, i, withcmip6=cmip6postproc,
                                                           new=new, awi=awi)
             postprocessingtemp = copy.deepcopy(temperature_denorm)
-
             if with_oldmodel:
-                # seperatedenormalisation and postprocessing of the temperature prediction for other model
+                # seperate denormalisation and postprocessing of the temperature prediction for other model
                 temperature_denorm_old = np.ones((years.size, temperature_pred[0, :].size))
                 for i in range(temperature_pred_old[0, :].size):
                     temperature_denorm_old[:, i] = postprocessing(temperature_pred_old[:, i], years, i,
                                                                   withcmip6=cmip6postproc, new=new, awi=awi)
                 postprocessingtemp_old = copy.deepcopy(temperature_denorm_old)
-
             tippingpointtriggerd = False
             if withtippingpoints:
                 if permafrosttriggerd or rainforesttriggerd:
@@ -936,7 +943,6 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                     triggeryears.append(triggerrainforest)
                 for i in range(len(triggeryearspermafrost)):
                     triggeryears.append(triggeryearspermafrost[i])
-
                 # apply different filters to denormalised temperature (special filter for tipping point simulation)
                 tempsave = temperature_denorm
                 new = np.ones(temperature_denorm.shape)
@@ -945,36 +951,38 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                 newsave = new
                 temperature_denorm = new
 
-                newer = copy.deepcopy(temperature_denorm)
+                newer = temperature_denorm.copy()  #copy.deepcopy(temperature_denorm)
                 for i in range(newer[0, :].size):
                     ked = triggeryears[len(triggeryears) - 1] + 8
                     led = triggeryears[len(triggeryears) - 1] + 2
                     med = triggeryears[len(triggeryears) - 1] + 20
-                    if ked>99:
+                    if ked > 99:
                         ked = 99
-                    if led>99:
+                    if led > 99:
                         led = 99
+                    if med > 99:
+                        med = 99
                     if (temperature_denorm[ked, i] - temperature_denorm[led, i]) < 0:
-                    #if (temperature_denorm[triggeryears[len(triggeryears) - 1] + 8, i] - temperature_denorm[
-                     #   triggeryears[len(triggeryears) - 1] + 2, i]) < 0:
+                        #if (temperature_denorm[triggeryears[len(triggeryears) - 1] + 8, i] - temperature_denorm[
+                        #   triggeryears[len(triggeryears) - 1] + 2, i]) < 0:
                         newer[led:, i] = (temperature_denorm[
-                                                                              led:,
-                                                                              i] - (temperature_denorm[ked, i] -
-                                                                                    temperature_denorm[led, i])) + 0.5
+                                          led:,
+                                          i] - (temperature_denorm[ked, i] -
+                                                temperature_denorm[led, i])) + 0.5
                     else:
                         newer[led:, i] = (temperature_denorm[
-                                                                              led:,
-                                                                              i] + (temperature_denorm[ked, i] -
-                                                                                    temperature_denorm[led, i])) + 0.5
-                    newer[ked:med,
-                    i] = movingaverage_new(
-                        newer[ked:med, i],
-                        N=10, only_historical=True)
+                                          led:,
+                                          i] + (temperature_denorm[ked, i] -
+                                                temperature_denorm[led, i])) + 0.5
+                    #try:
+                     #   newer[ked:med,i] = movingaverage_new(newer[ked:med, i],N=10, only_historical=True)
+                    #except Exception as N:
+                     #   print('error')
+                      #  print(N)
 
                     newer[triggeryears[0]:, i] = movingaverage(newer[triggeryears[0]:, i], N=15)
 
                     newer[:, i] = movingaverage_new(newer[:, i], N=4, only_historical=True)
-
                     if rainforesttriggerd:
                         newer[:triggeryears[0], i] = postprocessingtemp[:triggeryears[0], i]
                         newer[:, i] = movingaverage_new(newer[:, i], N=8, only_historical=True)
@@ -985,7 +993,7 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                     if rainforesttriggerd and permafrosttriggerd:
                         if triggeryears[1] - triggeryears[0] > 23:
                             newer[triggeryears[0]:fed, i] = newer[triggeryears[0]:fed,
-                                                                             i] + 0.6
+                                                            i] + 0.6
                             newer[:, i] = movingaverage(newer[:, i],
                                                         N=7)
                         else:
@@ -1014,14 +1022,14 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
             # final filter for temperature simulation
             if tippingpointtriggerd:
                 output = newer
-                newtemp = np.ones(temperature_denorm_old.shape)
-                for i in range(temperature_denorm_old[0, :].size):
-                    newtemp[:, i] = movingaverage(temperature_denorm_old[:, i], N=2)
+                newtemp = np.ones(newer.shape)
+                for i in range(newer[0, :].size):
+                    newtemp[:, i] = movingaverage(newer[:, i], N=2)
             else:
                 newtemp = np.ones(temperature_denorm.shape)
                 for i in range(temperature_denorm[0, :].size):
                     newtemp[:, i] = movingaverage(temperature_denorm[:, i], N=2)
-                #output = newtemp
+                output = newtemp
             oldtemp = copy.deepcopy(newtemp)
             if withcmip6:
                 if awi:
@@ -1030,13 +1038,11 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                     u = 55297
             else:
                 u = 115201
-            newpredf = np.ones(newtemp.shape)
+            newpredf = np.ones(output.shape)
             for i in range(100):
-                newpredf[i, :u-1] = newtemp[i, :u-1] - (math.sqrt(99 - (i)) * 0.85)
-            newpredf[:, :u-1] = newpredf[:, :u-1] + 17
-            newtemp[:, :u-1] = gaussian_filter(newpredf[:, :u-1], sigma=2)
-            output = newtemp
-
+                newpredf[i, :u - 1] = newtemp[i, :u - 1] - (math.sqrt(99 - (i)) * 0.85)
+            newpredf[:, :u - 1] = newpredf[:, :u - 1] + 17
+            newtemp[:, :u - 1] = gaussian_filter(newpredf[:, :u - 1], sigma=2)
             if predsea:
                 # sea level simulation
 
@@ -1072,16 +1078,16 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                         # build sea level simulation model (taking into account regionalised temperature)
                         kala = Training.buildSST(gafsize=gafsize, outputsize=1, printsum=False, modelname=modelnamesea,
                                                  features=[X, tempgribmaped], new=True, sea=False, seasea=newsea)
-                        kala.load_weights('../KlimaUi/climatesimulationAI/models/' + modelnamesea)
+                        kala.load_weights('KlimaUi/climatesimulationAI/models/' + modelnamesea)
                     else:
                         # build sea level simulation model (WITHOUT taking into account regionalised temperature)
                         kala = Training.buildSST(gafsize=gafsize, outputsize=1, printsum=False, modelname=modelnamesea,
                                                  features=X, num_heads=4, old=True, new=False)
-                        kala.load_weights('../KlimaUi/climatesimulationAI/models/' + modelnamesea)
+                        kala.load_weights('KlimaUi/climatesimulationAI/models/' + modelnamesea)
                 elif method_Conv:
                     # build sea level simulation model with CNN architecture
                     kala = Training.buildConv(gafsize=gafsize, inputshape=X[0].shape, printsum=False)
-                    kala.load_weights('../KlimaUi/climatesimulationAI/models/' + modelnamesea)
+                    kala.load_weights('KlimaUi/climatesimulationAI/models/' + modelnamesea)
 
                 # sea level prediction (different input depending on model)
                 if newsea:
@@ -1139,12 +1145,13 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
 
                 else:
                     output = [temperature_denorm, sealevel_denorm[:]]
-
+            if onlyemidata:
+                output = future_inputs / 1000
         else:
             # return combined GAF or only emission developments if wished
             output = X
             if onlyemidata:
-                output = future_inputs/1000
+                output = future_inputs / 1000
 
         return output
 

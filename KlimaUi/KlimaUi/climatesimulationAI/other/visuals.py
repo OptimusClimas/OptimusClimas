@@ -59,20 +59,20 @@ def visualizegridtemperature(predf, first=False, last=True, i=None, min=-30, max
     if nominmax:
         # load lon/lat accordingly to the used grid
         if not nc:
-            lats = np.load('../KlimaUi/KlimaUi/climatesimulationAI/lats.npy',
+            lats = np.load('climatesimulationAI/lats.npy',
                            mmap_mode='r+')
-            lons = np.load('../KlimaUi/KlimaUi/climatesimulationAI/lons,npy.npy',
+            lons = np.load('climatesimulationAI/lons,npy.npy',
                            mmap_mode='r+')
         else:
             if awi:
-                lons = np.load('../KlimaUi/KlimaUi/lonnetcdfawi.npy',
+                lons = np.load('lonnetcdfawi.npy',
                                mmap_mode='r+')
-                lats = np.load('../KlimaUi/latnetcdfawi.npy',
+                lats = np.load('../latnetcdfawi.npy',
                                mmap_mode='r+')
             else:
-                lons = np.load('../KlimaUi/lonnetcdfnmip6new.npy',
+                lons = np.load('KlimaUi/lonnetcdfnmip6new.npy',
                                mmap_mode='r+')
-                lats = np.load('../KlimaUi/latnetcdfnmip6new.npy',
+                lats = np.load('KlimaUi/latnetcdfnmip6new.npy',
                                mmap_mode='r+')
         # determine year to be displayed
         if first:
@@ -147,20 +147,20 @@ def visualizegridtemperature(predf, first=False, last=True, i=None, min=-30, max
     else:
         # load lon/lat accordingly to the used grid
         if not nc:
-            lats = np.load('../KlimaUi/climatesimulationAI/lats.npy',
+            lats = np.load('climatesimulationAI/lats.npy',
                            mmap_mode='r+')
-            lons = np.load('../KlimaUi/climatesimulationAI/lons,npy.npy',
+            lons = np.load('climatesimulationAI/lons,npy.npy',
                            mmap_mode='r+')
         else:
             if awi:
-                lons = np.load('../KlimaUi/lonnetcdfawi.npy',
+                lons = np.load('lonnetcdfawi.npy',
                                mmap_mode='r+')
-                lats = np.load('../KlimaUi/latnetcdfawi.npy',
+                lats = np.load('../latnetcdfawi.npy',
                                mmap_mode='r+')
             else:
-                lons = np.load('../KlimaUi/lonnetcdfnmip6new.npy',
+                lons = np.load('KlimaUi/lonnetcdfnmip6new.npy',
                                mmap_mode='r+')
-                lats = np.load('../KlimaUi/latnetcdfnmip6new.npy',
+                lats = np.load('KlimaUi/latnetcdfnmip6new.npy',
                                mmap_mode='r+')
         # determine year to be displayed
         if first:

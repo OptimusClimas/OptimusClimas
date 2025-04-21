@@ -261,7 +261,7 @@ class Ui_MainWindow(object):
 # defines stylesheet for the Main Windows
 stylesheet = """
         QMainWindow {
-            border-image: url("/home/lilly/Bilder/designUIoptimusklimas.png") 0 0 0 0 stretch stretch; 
+            border-image: url("KlimaUi/climatesimulationAI/designUIoptimusklimas.png") 0 0 0 0 stretch stretch; 
             background-position: center;
             background-attachment: fixed;
         }
@@ -383,11 +383,11 @@ class myThreadSim(threading.Thread):
         newsea = True
 
         # init emissions for ssp scenarios
-        ghgchangesssp19 = [-98, -98, -60, -80, -85, -58]
-        ghgchangesssp126 = [-90, -90, -60, -77, -88, -58]
-        ghgchangesssp2 = [-75, -75, -25, -55, -60, -55]
-        ghgchangesssp3 = [100, 100, 100, -1, -10, -1]
-        ghgchangesssp5 = [200, 200, 50, -60, -60, -43]
+        ghgchangesssp19 = [-98+ 28*(-60) + 3.67*(-80) + 900*(-58), -98, -60, -80, -85, -58]
+        ghgchangesssp126 = [-90+ 28*(-60) + 3.67*(-77) + 900*(-58), -90, -60, -77, -88, -58]
+        ghgchangesssp2 = [-75+ 28*(-25) + 3.67*(-55) + 900*(-55), -75, -25, -55, -60, -55]
+        ghgchangesssp3 = [100+ 28*100 + 3.67*(-1) + 900*(-1), 100, 100, -1, -10, -1]
+        ghgchangesssp5 = [200+ 28*50 + 3.67*(-60) + 900*(-43), 200, 50, -60, -60, -43]
 
         # init variables for aerobe or anaerobe conditions (for permafrost simulation)
         if aerobe:
@@ -482,7 +482,7 @@ class myThreadSim(threading.Thread):
             # init variables for displaying results of the simulation
             years = np.arange(2014, 2114)
             # back-up of the simulation results via file saving as and .npy
-            np.save('climatesimulationAI/other/predf.npy', predf[0])
+            np.save('KlimaUi/climatesimulationAI/other/predf.npy', predf[0])
             sim = np.ones((2, 100))
             global outputsize
             # change outputsize if model with "nc" grid is used
@@ -717,7 +717,7 @@ class Ui_Output(object):
 
 stylesheet = """
         QMainWindow {
-            border-image: url("climatesimulationAI/designUIoptimusklimas.png"); 
+            border-image: url("KlimaUi/climatesimulationAI/designUIoptimusklimas.png"); 
         }
     """
 
@@ -750,7 +750,7 @@ def startsim():
             global oc
             oc = int(ui.lineEdit_oc.text())
             global ghg
-            ghg = int(ui.lineEdit_co2.text())
+            ghg = int(ui.lineEdit_co2.text()) + 28*ch4 + 3.67*oc + 900*bc
         except Exception as e:
             print('Wrong format of input has been entered, emissions have to be integers or floats!')
 
@@ -857,17 +857,22 @@ def startsim():
         thread1 = myThreadSim(1, "Thread-1", 1)
         thread1.daemon = True
         thread1.start()
-        sys.exit(appSim.exec_())
+        #sys.exit(appSim.exec_())
     else:
         print('The possible range of changes from -90 % to 450 % was exceeded -> No Simulation possible!')
 
 
-# init app with UI
-app = QtWidgets.QApplication(sys.argv)
-app.setStyleSheet(stylesheet)
-MainInput = QtWidgets.QMainWindow()
-ui = Ui_MainWindow()
-ui.setupUi(MainInput)
-# show Window and execute App
-MainInput.show()
-sys.exit(app.exec_())
+def main():
+    app.setStyleSheet(stylesheet)
+    ui.setupUi(MainInput)
+    # show Window and execute App
+    MainInput.show()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    # init app with UI
+    app = QtWidgets.QApplication(sys.argv)
+    MainInput = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    main()
+

@@ -1,19 +1,29 @@
+import os
+import warnings
+import logging
 import numpy as np
 import matplotlib.pyplot as plt
-import tensorflow as tf
-import tensorflow.keras as keras
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.callbacks import ModelCheckpoint
-from tensorflow.keras.layers import Dense, Dropout, LSTM, MaxPooling1D
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.layers import Dense, Flatten, Conv1D
-from tensorflow.keras.layers import Conv2D, MaxPooling2D
 import datetime
 import math
-from tensorflow.keras import layers
 
 
-class AddPositionEmbs(layers.Layer):
+def import_tensorflow():
+    # import of tensorflow while suppressing certain warnings
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    warnings.simplefilter(action='ignore', category=Warning)
+    import tensorflow as tf
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    tf.get_logger().setLevel('INFO')
+    tf.autograph.set_verbosity(0)
+    tf.get_logger().setLevel(logging.ERROR)
+    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+    return tf
+
+tf = import_tensorflow()
+
+class AddPositionEmbs(tf.keras.layers.Layer):
     """inputs are image patches
     Custom layer to add positional embeddings to the inputs."""
 
@@ -49,22 +59,22 @@ For repeating the Transformer Encoder Block we use Encoder_f function.
 
 
 def mlp_block_f(mlp_dim, inputs):
-    x = layers.Dense(units=mlp_dim, activation=tf.nn.gelu)(inputs)
-    x = layers.Dropout(rate=0.1)(x)  # dropout rate is from original paper,
-    x = layers.Dense(units=inputs.shape[-1], activation=tf.nn.gelu)(x)  # check GELU paper
-    x = layers.Dropout(rate=0.1)(x)
+    x = tf.keras.layers.Dense(units=mlp_dim, activation=tf.nn.gelu)(inputs)
+    x = tf.keras.layers.Dropout(rate=0.1)(x)  # dropout rate is from original paper,
+    x = tf.keras.layers.Dense(units=inputs.shape[-1], activation=tf.nn.gelu)(x)  # check GELU paper
+    x = tf.keras.layers.Dropout(rate=0.1)(x)
     return x
 
 
 def Encoder1Dblock_f(num_heads, mlp_dim, inputs):
-    x = layers.LayerNormalization(dtype=inputs.dtype)(inputs)
-    x = layers.MultiHeadAttention(num_heads=num_heads, key_dim=inputs.shape[-1], dropout=0.1)(x, x)
+    x = tf.keras.layers.LayerNormalization(dtype=inputs.dtype)(inputs)
+    x = tf.keras.layers.MultiHeadAttention(num_heads=num_heads, key_dim=inputs.shape[-1], dropout=0.1)(x, x)
     # self attention multi-head, dropout_rate is from original implementation
-    x = layers.Add()([x, inputs])  # 1st residual part
+    x = tf.keras.layers.Add()([x, inputs])  # 1st residual part
 
-    y = layers.LayerNormalization(dtype=x.dtype)(x)
+    y = tf.keras.layers.LayerNormalization(dtype=x.dtype)(x)
     y = mlp_block_f(mlp_dim, y)
-    y_1 = layers.Add()([y, x])  # 2nd residual part
+    y_1 = tf.keras.layers.Add()([y, x])  # 2nd residual part
     return y_1
 
 
@@ -72,11 +82,11 @@ def Encoder_f(num_layers, mlp_dim, num_heads, inputs):
     initializer = tf.keras.initializers.GlorotNormal()
     x = AddPositionEmbs(posemb_init=initializer, name='posembed_input')(
         inputs)  # RandomNormal(stddev=0.02) #RandomUniform
-    x = layers.Dropout(rate=0.2)(x)
+    x = tf.keras.layers.Dropout(rate=0.2)(x)
     for _ in range(num_layers):
         x = Encoder1Dblock_f(num_heads, mlp_dim, x)
 
-    encoded = layers.LayerNormalization(name='encoder_norm')(x)
+    encoded = tf.keras.layers.LayerNormalization(name='encoder_norm')(x)
     return encoded
 
 
@@ -107,34 +117,34 @@ def buildConv(filter_size=20, gafsize=25, inputshape=(100, 300, 1), ResNet=True,
     # build a convolutional neural network (CNN)
     if ResNet:
         # build ResNet architecture
-        inputs = keras.Input(shape=inputshape, name="img")  # input/block 1
-        x = layers.Conv2D(64, filter_size, activation="relu")(inputs)
+        inputs = tf.keras.Input(shape=inputshape, name="img")  # input/block 1
+        x = tf.keras.layers.Conv2D(64, filter_size, activation="relu")(inputs)
         block_1_output = x
         # block 2
-        x = layers.Conv2D(64, filter_size, activation="relu", padding="same")(block_1_output)
-        x = layers.Dropout(0.15)(x)
-        block_2_output = layers.add([x, block_1_output])  # skip-connection
+        x = tf.keras.layers.Conv2D(64, filter_size, activation="relu", padding="same")(block_1_output)
+        x = tf.keras.layers.Dropout(0.15)(x)
+        block_2_output = tf.keras.layers.add([x, block_1_output])  # skip-connection
         # block 3
-        x = layers.Conv2D(64, filter_size, activation="relu", padding="same")(block_2_output)
-        x = layers.Dropout(0.15)(x)
-        block_3_output = layers.add([x, block_2_output])  # skip-connection
+        x = tf.keras.layers.Conv2D(64, filter_size, activation="relu", padding="same")(block_2_output)
+        x = tf.keras.layers.Dropout(0.15)(x)
+        block_3_output = tf.keras.layers.add([x, block_2_output])  # skip-connection
         # block 4
-        x = layers.Conv2D(64, filter_size, activation="relu", padding="same")(block_3_output)
-        x = layers.Dropout(0.15)(x)
-        block_4_output = layers.add([x, block_3_output])  # skip-connection
+        x = tf.keras.layers.Conv2D(64, filter_size, activation="relu", padding="same")(block_3_output)
+        x = tf.keras.layers.Dropout(0.15)(x)
+        block_4_output = tf.keras.layers.add([x, block_3_output])  # skip-connection
         # final CNN block with flattening
-        x = layers.Conv2D(64, filter_size, activation="relu")(block_4_output)
-        x = layers.Flatten()(x)
-        x = layers.Dropout(0.15)(x)
+        x = tf.keras.layers.Conv2D(64, filter_size, activation="relu")(block_4_output)
+        x = tf.keras.layers.Flatten()(x)
+        x = tf.keras.layers.Dropout(0.15)(x)
         # Dense Layers before output
-        x = layers.Dense(128, activation="relu")(x)
-        x = layers.Dense(64, activation="relu")(x)
-        x = layers.Dense(32, activation="relu")(x)
-        x = layers.Dense(16, activation="relu")(x)
-        outputs = layers.Dense(1)(x)  # output/final layer
+        x = tf.keras.layers.Dense(128, activation="relu")(x)
+        x = tf.keras.layers.Dense(64, activation="relu")(x)
+        x = tf.keras.layers.Dense(32, activation="relu")(x)
+        x = tf.keras.layers.Dense(16, activation="relu")(x)
+        outputs = tf.keras.layers.Dense(1)(x)  # output/final layer
 
         # compiling the model with MSE loss and Adam optimizer
-        model = keras.Model(inputs, outputs, name="kalaResNet")
+        model = tf.keras.Model(inputs, outputs, name="kalaResNet")
         model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae', 'mape', 'accuracy'])
 
         if printsum:
@@ -142,18 +152,18 @@ def buildConv(filter_size=20, gafsize=25, inputshape=(100, 300, 1), ResNet=True,
             model.summary()
     else:
         # build CNN with linear architecture and increasing filter size and dropout
-        model = Sequential()
-        model.add(Conv2D(filters=64, kernel_size=(4, 4), activation='relu', padding='same', input_shape=inputshape))
-        model.add(Dropout(0.15))
-        model.add(Conv2D(filters=128, kernel_size=(4, 4), activation='relu', padding='same'))
-        model.add(Dropout(0.15))
-        model.add(Conv2D(filters=256, kernel_size=(4, 4), activation='relu', padding='same'))
-        model.add(Dropout(0.15))
-        model.add(Conv2D(filters=512, kernel_size=(3, 3), activation='relu', padding='same'))
-        model.add(Flatten())
-        model.add(Dropout(0.15))
-        model.add(Dense(128, activation='relu'))
-        model.add(Dense(1))
+        model = tf.keras.models.Sequential()
+        model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=(4, 4), activation='relu', padding='same', input_shape=inputshape))
+        model.add(tf.keras.layers.Dropout(0.15))
+        model.add(tf.keras.layers.Conv2D(filters=128, kernel_size=(4, 4), activation='relu', padding='same'))
+        model.add(tf.keras.layers.Dropout(0.15))
+        model.add(tf.keras.layers.Conv2D(filters=256, kernel_size=(4, 4), activation='relu', padding='same'))
+        model.add(tf.keras.layers.Dropout(0.15))
+        model.add(tf.keras.layers.Conv2D(filters=512, kernel_size=(3, 3), activation='relu', padding='same'))
+        model.add(tf.keras.layers.Flatten())
+        model.add(tf.keras.layers.Dropout(0.15))
+        model.add(tf.keras.layers.Dense(128, activation='relu'))
+        model.add(tf.keras.layers.Dense(1))
         # compiling the model with MSE loss and Adam optimizer
         model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae', 'mape', 'accuracy'])
         if printsum:
@@ -202,20 +212,20 @@ def buildSST(gafsize, outputsize, printsum, modelname, features, num_heads=8, ol
                 (x - ((m - 1) * (f - 1))) * (y - ((m - 1) * (f - 1))) * n):
             # input (global emission and temperature branch)
             pos_embed_layer = AddPositionEmbs(posemb_init=tf.keras.initializers.RandomNormal(stddev=0.02))
-            inputs = layers.Input(shape=(gafsize, features[0][0, 0, :].size, 1), name='gaf')
+            inputs = tf.keras.layers.Input(shape=(gafsize, features[0][0, 0, :].size, 1), name='gaf')
             # Convolution Block
-            conv1 = layers.Conv2D(n, f, activation='relu')(inputs)
-            conv2 = layers.Conv2D(n, f, activation='relu')(conv1)
-            conv3 = layers.Conv2D(n, f, activation='relu')(conv2)
-            conv4 = layers.Conv2D(n, f, activation='relu')(conv3)
-            conv5 = layers.Conv2D(n, f, activation='relu')(conv4)
-            block_in = layers.Dropout(0.05)(conv5)
+            conv1 = tf.keras.layers.Conv2D(n, f, activation='relu')(inputs)
+            conv2 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv1)
+            conv3 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv2)
+            conv4 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv3)
+            conv5 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv4)
+            block_in = tf.keras.layers.Dropout(0.05)(conv5)
             # LSTM Block
             reshape = tf.reshape(block_in, [-1, 125 * 28, 5])
-            lstm = layers.LSTM(5, return_sequences=True)(
+            lstm = tf.keras.layers.LSTM(5, return_sequences=True)(
                 reshape)
-            lstm2 = layers.LSTM(5, return_sequences=True)(lstm)
-            flatten = layers.Flatten()(lstm2)
+            lstm2 = tf.keras.layers.LSTM(5, return_sequences=True)(lstm)
+            flatten = tf.keras.layers.Flatten()(lstm2)
             # transformer blocks
             row_axis, col_axis = (1, 2)  # channels last images
             seq_len = (inputs.shape[row_axis] // patch_size) * (inputs.shape[col_axis] // patch_size)
@@ -223,27 +233,27 @@ def buildSST(gafsize, outputsize, printsum, modelname, features, num_heads=8, ol
             encoder_out = Encoder_f(transformer_layers, mlp_dim, num_heads, x)
             # final part global emissions and temperature branch
             im_representation = tf.reduce_mean(encoder_out, axis=1)
-            lpout1 = layers.Dense(256)(im_representation)
+            lpout1 = tf.keras.layers.Dense(256)(im_representation)
 
             # regionalised temperature branch with ConvolutionLSTM Layers
-            mapped_input = layers.Input(shape=mapshape, name='map')
-            convlstm1_map = layers.Conv2D(n, f, activation='relu')(mapped_input)
-            drop1_map = layers.Dropout(0.05)(convlstm1_map)
-            convlstm2_map = layers.Conv2D(n, f, activation='relu')(drop1_map)
-            convlstm3_map = layers.Conv2D(n, f, activation='relu')(convlstm2_map)
-            convlstm4_map = layers.Conv2D(n, f, activation='relu')(convlstm3_map)
-            convlstm5_map = layers.Conv2D(n, f, activation='relu')(convlstm4_map)
-            drop2_map = layers.Dropout(0.05)(convlstm5_map)
-            convlstm6_map = layers.Conv2D(n, f, activation='relu')(drop2_map)
-            convlstm7_map = layers.Conv2D(n, f, activation='relu')(convlstm6_map)
-            convlstm8_map = layers.Conv2D(n, f, activation='relu')(convlstm7_map)
-            flatten_map = layers.Flatten()(convlstm8_map)
+            mapped_input = tf.keras.layers.Input(shape=mapshape, name='map')
+            convlstm1_map = tf.keras.layers.Conv2D(n, f, activation='relu')(mapped_input)
+            drop1_map = tf.keras.layers.Dropout(0.05)(convlstm1_map)
+            convlstm2_map = tf.keras.layers.Conv2D(n, f, activation='relu')(drop1_map)
+            convlstm3_map = tf.keras.layers.Conv2D(n, f, activation='relu')(convlstm2_map)
+            convlstm4_map = tf.keras.layers.Conv2D(n, f, activation='relu')(convlstm3_map)
+            convlstm5_map = tf.keras.layers.Conv2D(n, f, activation='relu')(convlstm4_map)
+            drop2_map = tf.keras.layers.Dropout(0.05)(convlstm5_map)
+            convlstm6_map = tf.keras.layers.Conv2D(n, f, activation='relu')(drop2_map)
+            convlstm7_map = tf.keras.layers.Conv2D(n, f, activation='relu')(convlstm6_map)
+            convlstm8_map = tf.keras.layers.Conv2D(n, f, activation='relu')(convlstm7_map)
+            flatten_map = tf.keras.layers.Flatten()(convlstm8_map)
 
             # combining both branches
-            x = layers.concatenate([lpout1, flatten_map])
+            x = tf.keras.layers.concatenate([lpout1, flatten_map])
             # final Dense
-            lpout2 = layers.Dense(512)(x)
-            logits = layers.Dense(outputsize)(lpout2)
+            lpout2 = tf.keras.layers.Dense(512)(x)
+            logits = tf.keras.layers.Dense(outputsize)(lpout2)
 
             # compiling model
             model = tf.keras.Model(inputs=[inputs, mapped_input], outputs=logits, name=modelname)
@@ -278,19 +288,19 @@ def buildSST(gafsize, outputsize, printsum, modelname, features, num_heads=8, ol
                 (x - ((m - 1) * (f - 1))) * (y - ((m - 1) * (f - 1))) * n):
             # input (global emission and temperature branch)
             pos_embed_layer = AddPositionEmbs(posemb_init=tf.keras.initializers.RandomNormal(stddev=0.02))
-            inputs = layers.Input(shape=(gafsize, features[0][0, 0, :].size, 1), name='gaf')
+            inputs = tf.keras.layers.Input(shape=(gafsize, features[0][0, 0, :].size, 1), name='gaf')
             # Convolution Block
-            conv1 = layers.Conv2D(n, f, activation='relu')(inputs)
-            conv2 = layers.Conv2D(n, f, activation='relu')(conv1)
-            conv3 = layers.Conv2D(n, f, activation='relu')(conv2)
-            conv4 = layers.Conv2D(n, f, activation='relu')(conv3)
-            conv5 = layers.Conv2D(n, f, activation='relu')(conv4)
-            block_in = layers.Dropout(0.05)(conv5)
+            conv1 = tf.keras.layers.Conv2D(n, f, activation='relu')(inputs)
+            conv2 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv1)
+            conv3 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv2)
+            conv4 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv3)
+            conv5 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv4)
+            block_in = tf.keras.layers.Dropout(0.05)(conv5)
             # LSTM Block
             reshape = tf.reshape(block_in, [-1, 125 * 28, 5])
-            lstm = layers.LSTM(5, return_sequences=True)(reshape)
-            lstm2 = layers.LSTM(5, return_sequences=True)(lstm)
-            flatten = layers.Flatten()(lstm2)
+            lstm = tf.keras.layers.LSTM(5, return_sequences=True)(reshape)
+            lstm2 = tf.keras.layers.LSTM(5, return_sequences=True)(lstm)
+            flatten = tf.keras.layers.Flatten()(lstm2)
             # Transformer blocks
             row_axis, col_axis = (1, 2)  # channels last images
             seq_len = (inputs.shape[row_axis] // patch_size) * (inputs.shape[col_axis] // patch_size)
@@ -298,28 +308,28 @@ def buildSST(gafsize, outputsize, printsum, modelname, features, num_heads=8, ol
             encoder_out = Encoder_f(transformer_layers, mlp_dim, num_heads, x)
             # final part global emissions and temperature branch
             im_representation = tf.reduce_mean(encoder_out, axis=1)
-            lpout1 = layers.Dense(256)(im_representation)
+            lpout1 = tf.keras.layers.Dense(256)(im_representation)
 
             # regionalised temperature branch with ConvolutionLSTM Layers
-            mapped_input = layers.Input(shape=mapshape, name='map')
-            convlstm1_map = layers.Conv2D(n, f, activation='relu')(mapped_input)
-            drop1_map = layers.Dropout(0.05)(convlstm1_map)
-            convlstm2_map = layers.Conv2D(n, f, activation='relu')(drop1_map)
-            convlstm3_map = layers.Conv2D(n, f, activation='relu')(convlstm2_map)
-            convlstm4_map = layers.Conv2D(n, f, activation='relu')(convlstm3_map)
-            convlstm5_map = layers.Conv2D(n, f, activation='relu')(convlstm4_map)
-            drop2_map = layers.Dropout(0.05)(convlstm5_map)
-            convlstm6_map = layers.Conv2D(n, f, activation='relu')(drop2_map)
-            convlstm7_map = layers.Conv2D(n, f, activation='relu')(convlstm6_map)
-            convlstm8_map = layers.Conv2D(n, f, activation='relu')(convlstm7_map)
-            flatten_map = layers.Flatten()(convlstm8_map)
+            mapped_input = tf.keras.layers.Input(shape=mapshape, name='map')
+            convlstm1_map = tf.keras.layers.Conv2D(n, f, activation='relu')(mapped_input)
+            drop1_map = tf.keras.layers.Dropout(0.05)(convlstm1_map)
+            convlstm2_map = tf.keras.layers.Conv2D(n, f, activation='relu')(drop1_map)
+            convlstm3_map = tf.keras.layers.Conv2D(n, f, activation='relu')(convlstm2_map)
+            convlstm4_map = tf.keras.layers.Conv2D(n, f, activation='relu')(convlstm3_map)
+            convlstm5_map = tf.keras.layers.Conv2D(n, f, activation='relu')(convlstm4_map)
+            drop2_map = tf.keras.layers.Dropout(0.05)(convlstm5_map)
+            convlstm6_map = tf.keras.layers.Conv2D(n, f, activation='relu')(drop2_map)
+            convlstm7_map = tf.keras.layers.Conv2D(n, f, activation='relu')(convlstm6_map)
+            convlstm8_map = tf.keras.layers.Conv2D(n, f, activation='relu')(convlstm7_map)
+            flatten_map = tf.keras.layers.Flatten()(convlstm8_map)
 
             # combining both branches
-            x = layers.concatenate([lpout1, flatten_map])
+            x = tf.keras.layers.concatenate([lpout1, flatten_map])
 
             # final Dense
-            lpout2 = layers.Dense(512)(x)
-            logits = layers.Dense(outputsize)(lpout2)
+            lpout2 = tf.keras.layers.Dense(512)(x)
+            logits = tf.keras.layers.Dense(outputsize)(lpout2)
 
             # compiling model
             model = tf.keras.Model(inputs=[inputs, mapped_input], outputs=logits, name=modelname)
@@ -356,20 +366,20 @@ def buildSST(gafsize, outputsize, printsum, modelname, features, num_heads=8, ol
                     (x - ((m - 1) * (f - 1))) * (y - ((m - 1) * (f - 1))) * n):
                 # input
                 pos_embed_layer = AddPositionEmbs(posemb_init=tf.keras.initializers.RandomNormal(stddev=0.02))
-                inputs = layers.Input(shape=(gafsize, features[0, 0, :].size, 1))
+                inputs = tf.keras.layers.Input(shape=(gafsize, features[0, 0, :].size, 1))
                 # Convolution Block
-                conv1 = layers.Conv2D(n, f, activation='relu')(inputs)
-                conv2 = layers.Conv2D(n, f, activation='relu')(conv1)
-                conv3 = layers.Conv2D(n, f, activation='relu')(conv2)
-                conv4 = layers.Conv2D(n, f, activation='relu')(conv3)
-                conv5 = layers.Conv2D(n, f, activation='relu')(conv4)
-                block_in = layers.Dropout(0.05)(conv5)
+                conv1 = tf.keras.layers.Conv2D(n, f, activation='relu')(inputs)
+                conv2 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv1)
+                conv3 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv2)
+                conv4 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv3)
+                conv5 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv4)
+                block_in = tf.keras.layers.Dropout(0.05)(conv5)
                 # LSTM Block
                 reshape = tf.reshape(block_in, [-1, 125 * 28, 5])
-                lstm = layers.LSTM(5, return_sequences=True)(
+                lstm = tf.keras.layers.LSTM(5, return_sequences=True)(
                     reshape)
-                lstm2 = layers.LSTM(5, return_sequences=True)(lstm)
-                flatten = layers.Flatten()(lstm2)
+                lstm2 = tf.keras.layers.LSTM(5, return_sequences=True)(lstm)
+                flatten = tf.keras.layers.Flatten()(lstm2)
 
                 # Transformer Blocks
                 row_axis, col_axis = (1, 2)  # channels last images
@@ -378,9 +388,9 @@ def buildSST(gafsize, outputsize, printsum, modelname, features, num_heads=8, ol
                 encoder_out = Encoder_f(transformer_layers, mlp_dim, num_heads, x)
                 #  final part (mlp to classification)
                 im_representation = tf.reduce_mean(encoder_out, axis=1)
-                lpout1 = layers.Dense(256)(im_representation)
-                lpout2 = layers.Dense(512)(lpout1)
-                logits = layers.Dense(outputsize)(lpout2)
+                lpout1 = tf.keras.layers.Dense(256)(im_representation)
+                lpout2 = tf.keras.layers.Dense(512)(lpout1)
+                logits = tf.keras.layers.Dense(outputsize)(lpout2)
                 # compiling the model
                 model = tf.keras.Model(inputs=inputs, outputs=logits, name=modelname)
                 if printsum: model.summary()
@@ -414,19 +424,19 @@ def buildSST(gafsize, outputsize, printsum, modelname, features, num_heads=8, ol
                     (x - ((m - 1) * (f - 1))) * (y - ((m - 1) * (f - 1))) * n):
                 # input
                 pos_embed_layer = AddPositionEmbs(posemb_init=tf.keras.initializers.RandomNormal(stddev=0.02))
-                inputs = layers.Input(shape=(gafsize, features[0, 0, :].size, 1))
+                inputs = tf.keras.layers.Input(shape=(gafsize, features[0, 0, :].size, 1))
                 # Convolution Block
-                conv1 = layers.Conv2D(n, f, activation='relu')(inputs)
-                conv2 = layers.Conv2D(n, f, activation='relu')(conv1)
-                conv3 = layers.Conv2D(n, f, activation='relu')(conv2)
-                conv4 = layers.Conv2D(n, f, activation='relu')(conv3)
-                conv5 = layers.Conv2D(n, f, activation='relu')(conv4)
-                block_in = layers.Dropout(0.05)(conv5)
+                conv1 = tf.keras.layers.Conv2D(n, f, activation='relu')(inputs)
+                conv2 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv1)
+                conv3 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv2)
+                conv4 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv3)
+                conv5 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv4)
+                block_in = tf.keras.layers.Dropout(0.05)(conv5)
                 # LSTM Block
                 reshape = tf.reshape(block_in, [-1, 125 * 28, 5])
-                lstm = layers.LSTM(5, return_sequences=True)(
+                lstm = tf.keras.layers.LSTM(5, return_sequences=True)(
                     reshape)
-                flatten = layers.Flatten()(lstm)
+                flatten = tf.keras.layers.Flatten()(lstm)
                 # Transformer Blocks
                 row_axis, col_axis = (1, 2)  # channels last images
                 seq_len = (inputs.shape[row_axis] // patch_size) * (inputs.shape[col_axis] // patch_size)
@@ -434,9 +444,9 @@ def buildSST(gafsize, outputsize, printsum, modelname, features, num_heads=8, ol
                 encoder_out = Encoder_f(transformer_layers, mlp_dim, num_heads, x)
                 #  final part (mlp to classification)
                 im_representation = tf.reduce_mean(encoder_out, axis=1)
-                lpout1 = layers.Dense(256)(im_representation)
-                lpout2 = layers.Dense(512)(lpout1)
-                logits = layers.Dense(outputsize)(lpout2)
+                lpout1 = tf.keras.layers.Dense(256)(im_representation)
+                lpout2 = tf.keras.layers.Dense(512)(lpout1)
+                logits = tf.keras.layers.Dense(outputsize)(lpout2)
 
                 # compiling the model
                 model = tf.keras.Model(inputs=inputs, outputs=logits, name=modelname)
@@ -472,19 +482,19 @@ def buildSST(gafsize, outputsize, printsum, modelname, features, num_heads=8, ol
                     (x - ((m - 1) * (f - 1))) * (y - ((m - 1) * (f - 1))) * n):
                 # input
                 pos_embed_layer = AddPositionEmbs(posemb_init=tf.keras.initializers.RandomNormal(stddev=0.02))
-                inputs = layers.Input(shape=(gafsize, features[0, 0, :].size, 1))
+                inputs = tf.keras.layers.Input(shape=(gafsize, features[0, 0, :].size, 1))
                 # Convolution Block
-                conv1 = layers.Conv2D(n, f, activation='relu')(inputs)
-                conv2 = layers.Conv2D(n, f, activation='relu')(conv1)
-                conv3 = layers.Conv2D(n, f, activation='relu')(conv2)
-                conv4 = layers.Conv2D(n, f, activation='relu')(conv3)
-                conv5 = layers.Conv2D(n, f, activation='relu')(conv4)
-                block_in = layers.Dropout(0.05)(conv5)
+                conv1 = tf.keras.layers.Conv2D(n, f, activation='relu')(inputs)
+                conv2 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv1)
+                conv3 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv2)
+                conv4 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv3)
+                conv5 = tf.keras.layers.Conv2D(n, f, activation='relu')(conv4)
+                block_in = tf.keras.layers.Dropout(0.05)(conv5)
                 # LSTM Block
                 reshape = tf.reshape(block_in, [-1, 125 * 28, 5])  # (None, 5, 125, 28)
-                lstm = layers.LSTM(5, return_sequences=True)(
+                lstm = tf.keras.layers.LSTM(5, return_sequences=True)(
                     reshape)
-                flatten = layers.Flatten()(lstm)
+                flatten = tf.keras.layers.Flatten()(lstm)
                 # Transformer Blocks
                 row_axis, col_axis = (1, 2)  # channels last images
                 seq_len = (inputs.shape[row_axis] // patch_size) * (inputs.shape[col_axis] // patch_size)
@@ -492,9 +502,9 @@ def buildSST(gafsize, outputsize, printsum, modelname, features, num_heads=8, ol
                 encoder_out = Encoder_f(transformer_layers, mlp_dim, num_heads, x)
                 #  final part (mlp to classification)
                 im_representation = tf.reduce_mean(encoder_out, axis=1)
-                lpout1 = layers.Dense(256)(im_representation)
-                lpout2 = layers.Dense(512)(lpout1)
-                logits = layers.Dense(outputsize)(lpout2)
+                lpout1 = tf.keras.layers.Dense(256)(im_representation)
+                lpout2 = tf.keras.layers.Dense(512)(lpout1)
+                logits = tf.keras.layers.Dense(outputsize)(lpout2)
 
                 # compiling the model
                 model = tf.keras.Model(inputs=inputs, outputs=logits, name=modelname)
@@ -558,7 +568,7 @@ class training:
             # load weights as trained before if to continue a previous training
             model.load_weights('../climatesimulationAI/models/' + modelname)
         # set saving check points with given modelname
-        mc = ModelCheckpoint('models/' + modelname, monitor='loss', mode='auto', verbose=1, save_best_only=False)
+        mc = tf.keras.callbacks.ModelCheckpoint('models/' + modelname, monitor='loss', mode='auto', verbose=1, save_best_only=False)
         # train the model
         model_history = model.fit(x_train, y_train, validation_data=(valx, valy), epochs=numepochs, initial_epoch=init,
                                   batch_size=20, verbose=1, shuffle=False, callbacks=[mc])

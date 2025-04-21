@@ -4,7 +4,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from KlimaUi.KlimaUi.climatesimulationAI import simulation
+from KlimaUi.climatesimulationAI import simulation
 
 
 def meandifference(mysim, vglsim):
@@ -25,7 +25,7 @@ def get_sub(x):
 
 
 def comparisontippingpoints(modelname, onlytrigger=False, nccmip6=True, sea=False,
-                            modelnamesea='kalaSST100.h5', anaerobe=True, rainforest=True):
+                            modelnamesea='kalaSST100.h5', anaerobe=True, rainforest=True, wais=False):
     # modelname: filename of the temperature model to be evaluated, string
     # onlytrigger: whether to only plot the co2 and ch4 emissions, boolean
     # nccmip6: if grid of cmip6 imported in a netCDF format is used, boolean (default true)
@@ -33,17 +33,19 @@ def comparisontippingpoints(modelname, onlytrigger=False, nccmip6=True, sea=Fals
     # modelnamesea: filename of the sea level model to be evaluated, string (only if sea=true)
     # anaerobe: whether anaerobe conditions are to be assumed for the collapse of the permafrost, boolean
     # rainforest: whether the tipping point die-off of the amazonian rainforest is to be taken into account, boolean
-
+    # wais: only plots scenarios SSP3-7.0 and SSP5-8.5 otherwise same functionality as sea, boolean
+    if wais:
+        sea = True
+    fontsizelabel = 17
     # plots the predictions of a model for different scenarios with and without taking tipping points into account
     if not sea:
         # temperature evaluation
         # outputsize accordingly to use grid
         if nccmip6:
-            u = 115200
+            u = 55296
         else:
             u = 115200
 
-        import simulation
         # init variables
 
         # init scenarios
@@ -89,8 +91,8 @@ def comparisontippingpoints(modelname, onlytrigger=False, nccmip6=True, sea=Fals
             # plot predicted emission developments for CO2
             fig, ax1 = plt.subplots(figsize=(9, 6))
             color = 'black'
-            ax1.set_xlabel('year', fontsize=15)
-            ax1.set_ylabel('CH{}'.format(get_sub('4')) + ' emissions in Gt', color=color, fontsize=15)
+            ax1.set_xlabel('year', fontsize=fontsizelabel)
+            ax1.set_ylabel('CH{}'.format(get_sub('4')) + ' emissions in Gt', color=color, fontsize=fontsizelabel)
             ax1.plot(np.arange(2014, 2114), predfssp5without[2, :] / 1000, 'b', linestyle='--')
             ax1.plot(np.arange(2014, 2114), predfssp5[2, :] / 1000, 'r')
             ax1.plot(np.arange(2014, 2114), predfperma3without[2, :] / 1000, 'steelblue', linestyle='--')
@@ -106,13 +108,13 @@ def comparisontippingpoints(modelname, onlytrigger=False, nccmip6=True, sea=Fals
                         'CH{}'.format(get_sub('4')) + ' 5x with tipping points',
                         'CH{}'.format(get_sub('4')) + ' 6x without tipping points',
                         'CH{}'.format(get_sub('4')) + ' 6x with tipping points'], loc='upper left',
-                       fontsize=10)  #'CH{}'.format(get_sub('4')) + '
+                       fontsize=fontsizelabel*0.65)  #'CH{}'.format(get_sub('4')) + '
 
             ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
             # plot predicted emission developments for CH4
             color = 'black'
             ax2.set_ylabel('CO{}'.format(get_sub('2')) + ' emissions in Gt', color=color,
-                           fontsize=15)  # we already handled the x-label with ax1
+                           fontsize=fontsizelabel)  # we already handled the x-label with ax1
             ax2.plot(np.arange(2014, 2114), predfssp5without[1, :] / 1000, 'royalblue', linestyle='--')
             ax2.plot(np.arange(2014, 2114), predfssp5[1, :] / 1000, 'crimson')
             ax2.plot(np.arange(2014, 2114), predfperma3without[1, :] / 1000, 'deepskyblue', linestyle='--')
@@ -127,19 +129,19 @@ def comparisontippingpoints(modelname, onlytrigger=False, nccmip6=True, sea=Fals
                         'CO{}'.format(get_sub('2')) + ' 5x without tipping points',
                         'CO{}'.format(get_sub('2')) + ' 5x with tipping points',
                         'CO{}'.format(get_sub('2')) + ' 6x without tipping points',
-                        'CO{}'.format(get_sub('2')) + ' 6x with tipping points'], loc='upper right', fontsize=10)
+                        'CO{}'.format(get_sub('2')) + ' 6x with tipping points'], loc='upper right', fontsize=fontsizelabel*0.65)
             fig.tight_layout()  # otherwise the right y-label is slightly clipped
 
-        plt.xticks(fontsize=10)
-        plt.yticks(fontsize=10)
+        plt.xticks(fontsize=fontsizelabel*0.75)
+        plt.yticks(fontsize=fontsizelabel*0.75)
         if not onlytrigger:
             plt.legend(
                 ['SSP 5-8.5 without tipping points', 'SSP 5-8.5 with tipping points', '4x without tipping points',
                  '4x with tipping points', '5x without tipping points', '5x with tipping points',
-                 '6x without tipping points', '6x with tipping points'], loc='upper left', fontsize=10)
-            plt.title('temperature simulation while considering tipping points', fontsize=15)
-            plt.ylabel('global mean tempeature in °C', fontsize=15)
-            plt.xlabel('year', fontsize=15)
+                 '6x without tipping points', '6x with tipping points'], loc='upper left', fontsize=fontsizelabel*0.65)
+            plt.title('temperature simulation while considering tipping points', fontsize=fontsizelabel)
+            plt.ylabel('global mean tempeature in °C', fontsize=fontsizelabel)
+            plt.xlabel('year', fontsize=fontsizelabel)
 
     else:
         # sea level evaluation
@@ -149,52 +151,71 @@ def comparisontippingpoints(modelname, onlytrigger=False, nccmip6=True, sea=Fals
         else:
             u = 115200
 
-        import simulation
 
         # init scenarios
+        ghgchangesssp3 = [100, 100, 100, -1, -10, -1]
         ghgchangesssp5 = [200, 200, 50, -60, -60, -43]
         ghgchangespermafrost3 = [300, 300, 100, -50, -50, -33]
         ghgchangespermafrost4 = [400, 400, 150, -40, -40, -38]
         ghgchangespermafrost5 = [500, 500, 200, -30, -30, -23]
         # predictions in different scenarios with and without consideration of tipping points
+        if wais:
+            predfssp3 = simulation.pred(ghgchanges=ghgchangesssp3, start=2014, end=2114, modelname=modelname,
+                                        withtippingpoints=True, predsea=True, modelnamesea=modelnamesea,
+                                        nccmip6=nccmip6,
+                                        onlyemidata=onlytrigger)
+            predfssp3without = simulation.pred(ghgchanges=ghgchangesssp3, start=2014, end=2114, modelname=modelname,
+                                               withtippingpoints=False, predsea=True, modelnamesea=modelnamesea,
+                                               nccmip6=nccmip6, onlyemidata=onlytrigger)
         predfssp5 = simulation.pred(ghgchanges=ghgchangesssp5, start=2014, end=2114, modelname=modelname,
                                     withtippingpoints=True, predsea=True, modelnamesea=modelnamesea, nccmip6=nccmip6,
                                     onlyemidata=onlytrigger)
         predfssp5without = simulation.pred(ghgchanges=ghgchangesssp5, start=2014, end=2114, modelname=modelname,
                                            withtippingpoints=False, predsea=True, modelnamesea=modelnamesea,
                                            nccmip6=nccmip6, onlyemidata=onlytrigger)
-        predfperma3 = simulation.pred(ghgchanges=ghgchangespermafrost3, start=2014, end=2114, modelname=modelname,
-                                      withtippingpoints=True, predsea=True, modelnamesea=modelnamesea, nccmip6=nccmip6,
-                                      onlyemidata=onlytrigger)
-        predfperma3without = simulation.pred(ghgchanges=ghgchangespermafrost3, start=2014, end=2114,
-                                             modelname=modelname, withtippingpoints=False, predsea=True,
-                                             modelnamesea=modelnamesea, nccmip6=nccmip6, onlyemidata=onlytrigger)
-        predfperma4without = simulation.pred(ghgchanges=ghgchangespermafrost4, start=2014, end=2114,
-                                             modelname=modelname, withtippingpoints=False, predsea=True,
-                                             modelnamesea=modelnamesea, nccmip6=nccmip6, onlyemidata=onlytrigger)
-        predfperma4 = simulation.pred(ghgchanges=ghgchangespermafrost4, start=2014, end=2114, modelname=modelname,
-                                      withtippingpoints=True, predsea=True, modelnamesea=modelnamesea, nccmip6=nccmip6,
-                                      onlyemidata=onlytrigger)
+        if not wais:
+            predfperma3 = simulation.pred(ghgchanges=ghgchangespermafrost3, start=2014, end=2114, modelname=modelname,
+                                          withtippingpoints=True, predsea=True, modelnamesea=modelnamesea, nccmip6=nccmip6,
+                                          onlyemidata=onlytrigger)
+            predfperma3without = simulation.pred(ghgchanges=ghgchangespermafrost3, start=2014, end=2114,
+                                                 modelname=modelname, withtippingpoints=False, predsea=True,
+                                                 modelnamesea=modelnamesea, nccmip6=nccmip6, onlyemidata=onlytrigger)
+            predfperma4without = simulation.pred(ghgchanges=ghgchangespermafrost4, start=2014, end=2114,
+                                                 modelname=modelname, withtippingpoints=False, predsea=True,
+                                                 modelnamesea=modelnamesea, nccmip6=nccmip6, onlyemidata=onlytrigger)
+            predfperma4 = simulation.pred(ghgchanges=ghgchangespermafrost4, start=2014, end=2114, modelname=modelname,
+                                          withtippingpoints=True, predsea=True, modelnamesea=modelnamesea, nccmip6=nccmip6,
+                                          onlyemidata=onlytrigger)
         plt.figure(figsize=(9, 6))
         if not onlytrigger:
-            plt.plot(np.arange(2014, 2114), predfssp5without[1][:, 0], 'b', linestyle='--')
-            plt.plot(np.arange(2014, 2114), predfssp5[1][:, 0], 'r')
-            plt.plot(np.arange(2014, 2114), predfperma3without[1][:, 0], 'steelblue', linestyle='--')
-            plt.plot(np.arange(2014, 2114), predfperma3[1][:, 0], 'magenta')
-            plt.plot(np.arange(2014, 2114), predfperma4without[1][:, 0], 'mediumturquoise', linestyle='--')
-            plt.plot(np.arange(2014, 2114), predfperma4[1][:, 0], 'blueviolet')
+            if wais:
+                plt.plot(np.arange(2014, 2114), predfssp3without[1], 'b', linestyle='--')
+                plt.plot(np.arange(2014, 2114), predfssp3[1], 'r')
+                plt.plot(np.arange(2014, 2114), predfssp5without[1], 'steelblue', linestyle='--')
+                plt.plot(np.arange(2014, 2114), predfssp5[1], 'magenta')
+            if not wais:
+                plt.plot(np.arange(2014, 2114), predfssp5without[1], 'b', linestyle='--')
+                plt.plot(np.arange(2014, 2114), predfssp5[1], 'r')
+                plt.plot(np.arange(2014, 2114), predfperma3without[1], 'steelblue', linestyle='--')
+                plt.plot(np.arange(2014, 2114), predfperma3[1], 'magenta')
+                plt.plot(np.arange(2014, 2114), predfperma4without[1], 'mediumturquoise', linestyle='--')
+                plt.plot(np.arange(2014, 2114), predfperma4[1], 'blueviolet')
 
-        plt.xticks(fontsize=10)
-        plt.yticks(fontsize=10)
-        plt.xlabel('year')
-        plt.legend(['SSP 5-8.5 without tipping points', 'SSP 5-8.5 with tipping points', '4x without tipping points',
-                    '4x with tipping points', '5x without tipping points', '5x with tipping points',
-                    '6x without tipping points', '6x with tipping points'], loc='upper left', fontsize=10)
+        plt.xticks(fontsize=fontsizelabel*0.75)
+        plt.yticks(fontsize=fontsizelabel*0.75)
+        plt.xlabel('year',fontsize=fontsizelabel)
+        if wais:
+            plt.legend(
+                ['SSP 3-7.0 without tipping points', 'SSP 3-7.0 with tipping points',
+                 'SSP 5-8.5 without tipping points', 'SSP 5-8.5 with tipping points',], loc='upper left',
+                fontsize=fontsizelabel * 0.65)
+        else:
+            plt.legend(['SSP 5-8.5 without tipping points', 'SSP 5-8.5 with tipping points', '4x without tipping points',
+                        '4x with tipping points', '5x without tipping points', '5x with tipping points',
+                        '6x without tipping points', '6x with tipping points'], loc='upper left', fontsize=fontsizelabel*0.65)
         if not onlytrigger:
-            plt.title('Sea level simulation while considering tipping points', fontsize=15)
-            plt.ylabel('Rise in mm since 1880', fontsize=15)
-
-        plt.savefig('evalpermafrost.png', dpi=1000)
+            plt.title('Sea level simulation while considering tipping points', fontsize=fontsizelabel)
+            plt.ylabel('Rise in mm since 1880', fontsize=fontsizelabel)
 
 
 def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=None, actfactore=0.8, nccmip6=False,
@@ -213,7 +234,6 @@ def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=N
         u = 55296
     else:
         u = 115200
-    import simulation
 
     if modelname is not None:
         # 0: GHG, 1: CO2, 2: CH4, 3: BC, 4: SO2, 5: OC
@@ -292,11 +312,11 @@ def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=N
             plt.fill_between(np.arange(2020, 2100), np.load('all_ssp5Temperaturlow.npy', mmap_mode="r+")[:80],
                              np.load('all_ssp5Temperaturhigh.npy', mmap_mode="r+")[:80], color='lightcoral',
                              alpha=.1)
-            plt.title('temperature simulation in SSP scenarios in comparison', fontsize=15)
-            plt.ylabel('global mean temperature in °C', fontsize=15)
-            plt.xlabel('year', fontsize=15)
-            plt.xticks(fontsize=10)
-            plt.yticks(fontsize=10)
+            plt.title('temperature simulation in SSP scenarios in comparison', fontsize=17)
+            plt.ylabel('global mean temperature in °C', fontsize=17)
+            plt.xlabel('year', fontsize=17)
+            plt.xticks(fontsize=12)
+            plt.yticks(fontsize=12)
             if not complete:
                 plt.legend(['SSP3-7.0 VT', 'SSP3-7.0 IPCC', 'SSP5-8.5 VT', 'SSP5-8.5 IPCC'], loc='upper left')
                 if withconv:
@@ -331,10 +351,10 @@ def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=N
             ssp5sealevel = np.load('ssp5sealevel.npy', mmap_mode='r+')
             ssp5sealevellow = np.load('ssp5sealevellow.npy', mmap_mode='r+')
             ssp5sealevelhigh = np.load('ssp5sealevelhigh.npy', mmap_mode='r+')
-            plt.plot(np.arange(2020, 2110), predf[1][6:96, 0], 'r')
+            plt.plot(np.arange(2020, 2110), predf[1][6:96], 'r')
             plt.plot(np.arange(2020, 2110), ssp5sealevel, 'r', linestyle='--')
             print('vgl sea ssp5: ' + str(
-                meandifference(predf[1][6:96, 0], np.load("ssp5sealevel.npy", mmap_mode="r+"))))
+                meandifference(predf[1][6:96], np.load("ssp5sealevel.npy", mmap_mode="r+"))))
             if withconv:
                 plt.plot(np.arange(2020, 2100), np.load('predconvseaglobalssp5.npy', mmap_mode='r+')[:80] + 0.75,
                          'maroon')
@@ -343,11 +363,11 @@ def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=N
                                    np.load("ssp5sealevel.npy", mmap_mode="r+"))))
             plt.fill_between(np.arange(2020, 2110), ssp3sealevellow, ssp3sealevelhigh, color='g', alpha=.1)
             plt.fill_between(np.arange(2020, 2110), ssp5sealevellow, ssp5sealevelhigh, color='red', alpha=.1)
-            plt.title('sea level simulation in SSP scenarios in comparison', fontsize=15)
-            plt.ylabel('rise in mm since 1880', fontsize=15)
-            plt.xlabel('year')
-            plt.xticks(fontsize=10)
-            plt.yticks(fontsize=10)
+            plt.title('sea level simulation in SSP scenarios in comparison', fontsize=17)
+            plt.ylabel('rise in mm since 1880', fontsize=17)
+            plt.xlabel('year',fontsize=17)
+            plt.xticks(fontsize=12)
+            plt.yticks(fontsize=12)
             plt.legend(['SSP3-7.0 VT', 'SSP3-7.0 IPCC', 'SSP5-8.5 VT', 'SSP5-8.5 IPCC'], loc='upper left')
             if withconv:
                 plt.legend(['SSP3-7.0 VT', 'SSP3-7.0 IPCC', 'SSP3-7.0 Conv', 'SSP5-8.5 VT', 'SSP5-8.5 IPCC',
