@@ -167,36 +167,43 @@ class Ui_MainWindow(object):
         self.checkBox_sealevel.setObjectName(u"checkBox_sealevel")
         self.checkBox_sealevel.setGeometry(QRect(540, 380, 461, 31))
         self.checkBox_sealevel.setFont(font)
-        # init checkBox_SSP for "use SSP-Scenarios"
-        self.checkBox_SSP = QCheckBox(self.centralwidget)
+        # init label for "use SSP-Scenarios"
+        self.checkBox_SSP = QLabel(self.centralwidget)
         self.checkBox_SSP.setObjectName(u"checkBox_SSP")
         self.checkBox_SSP.setGeometry(QRect(540, 420, 401, 31))
         self.checkBox_SSP.setFont(font)
+        # init buttongroup for ssp scenarios
+        ssp_group = QButtonGroup(self.centralwidget)
         # init checkBox_ssp2 for "SSP 2-4.5"
-        self.checkBox_ssp2 = QCheckBox(self.centralwidget)
+        self.checkBox_ssp2 = QRadioButton(self.centralwidget)
         self.checkBox_ssp2.setObjectName(u"checkBox_ssp2")
         self.checkBox_ssp2.setGeometry(QRect(560, 510, 401, 31))
         self.checkBox_ssp2.setFont(font1)
+        ssp_group.addButton(self.checkBox_ssp2)
         # init checkBox_ssp1 for "SSP 1-2.6"
-        self.checkBox_ssp1 = QCheckBox(self.centralwidget)
+        self.checkBox_ssp1 = QRadioButton(self.centralwidget)
         self.checkBox_ssp1.setObjectName(u"checkBox_ssp1")
         self.checkBox_ssp1.setGeometry(QRect(560, 480, 401, 31))
         self.checkBox_ssp1.setFont(font1)
+        ssp_group.addButton(self.checkBox_ssp1)
         # init checkBox_ssp19 for "SSP 1-1.9"
-        self.checkBox_ssp19 = QCheckBox(self.centralwidget)
+        self.checkBox_ssp19 = QRadioButton(self.centralwidget)
         self.checkBox_ssp19.setObjectName(u"checkBox_ssp19")
         self.checkBox_ssp19.setGeometry(QRect(560, 450, 401, 31))
         self.checkBox_ssp19.setFont(font1)
+        ssp_group.addButton(self.checkBox_ssp19)
         # init checkBox_ssp3 for "SSP 3-7.0"
-        self.checkBox_ssp3 = QCheckBox(self.centralwidget)
+        self.checkBox_ssp3 = QRadioButton(self.centralwidget)
         self.checkBox_ssp3.setObjectName(u"checkBox_ssp3")
         self.checkBox_ssp3.setGeometry(QRect(560, 540, 401, 31))
         self.checkBox_ssp3.setFont(font1)
+        ssp_group.addButton(self.checkBox_ssp3)
         # init checkBox_ssp5 for "SSP 5-8.5"
-        self.checkBox_ssp5 = QCheckBox(self.centralwidget)
+        self.checkBox_ssp5 = QRadioButton(self.centralwidget)
         self.checkBox_ssp5.setObjectName(u"checkBox_ssp5")
         self.checkBox_ssp5.setGeometry(QRect(560, 570, 401, 31))
         self.checkBox_ssp5.setFont(font1)
+        ssp_group.addButton(self.checkBox_ssp5)
         font2 = QFont()
         font2.setPointSize(15)
         # init button_start for "start simulation"
@@ -383,11 +390,11 @@ class myThreadSim(threading.Thread):
         newsea = True
 
         # init emissions for ssp scenarios
-        ghgchangesssp19 = [-98+ 28*(-60) + 3.67*(-80) + 900*(-58), -98, -60, -80, -85, -58]
-        ghgchangesssp126 = [-90+ 28*(-60) + 3.67*(-77) + 900*(-58), -90, -60, -77, -88, -58]
-        ghgchangesssp2 = [-75+ 28*(-25) + 3.67*(-55) + 900*(-55), -75, -25, -55, -60, -55]
-        ghgchangesssp3 = [100+ 28*100 + 3.67*(-1) + 900*(-1), 100, 100, -1, -10, -1]
-        ghgchangesssp5 = [200+ 28*50 + 3.67*(-60) + 900*(-43), 200, 50, -60, -60, -43]
+        ghgchangesssp19 = [-98, -98, -60, -80, -85, -58]
+        ghgchangesssp126 = [-90, -90, -60, -77, -88, -58]
+        ghgchangesssp2 = [-75, -75, -25, -55, -60, -55]
+        ghgchangesssp3 = [100, 100, 100, -1, -10, -1]
+        ghgchangesssp5 = [200, 200, 50, -60, -60, -43]
 
         # init variables for aerobe or anaerobe conditions (for permafrost simulation)
         if aerobe:
@@ -461,6 +468,7 @@ class myThreadSim(threading.Thread):
                 # select other model if a negative emission scenario was chosen
                 # !!! model for negative emission scenarios is not tested and evaluated as much,
                 # Optimus Climas is mainly optimised on positive emission scenarios !!!
+                stopssim = False
                 for i in range(2):
                     if ghgs[i] < 0:
                         print('negative emission scenario')
@@ -468,17 +476,20 @@ class myThreadSim(threading.Thread):
                         newuse = True
                         oldmodeluse = False
                         nc = True
-
-                # start prepared simulation with manually entered scenario
-                predf = simulation.pred(ghgchanges=ghgs, start=2014, end=2114, modelname=modelname,
-                                        withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
-                                        anaerobe=useanaerobe, rainforestused=rainforest,
-                                        partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, new=newuse,
-                                        with_oldmodel=oldmodeluse, awi=False, wais=wais, newsea=newsea)
+                        if tippingpoints:
+                            print('simulation of negative emission scenario with tipping points is not possible!')
+                            stopssim = True
+                if not stopssim:
+                    # start prepared simulation with manually entered scenario
+                    predf = simulation.pred(ghgchanges=ghgs, start=2014, end=2114, modelname=modelname,
+                                            withtippingpoints=tippingpoints, predsea=sea, modelnamesea=modelnamesea,
+                                            anaerobe=useanaerobe, rainforestused=rainforest,
+                                            partly_anaerobe=partlyanaerobe, partanaeorbe=partanaerobe, new=newuse,
+                                            with_oldmodel=oldmodeluse, awi=False, wais=wais, newsea=newsea)
             else:
                 # print error message if model emission range was exceeded
                 print('The possible range of changes from -90 % to 450 % was exceeded -> No Simulation possible!')
-        if not exceededmodelrange:
+        if not exceededmodelrange and (not stopssim):
             # init variables for displaying results of the simulation
             years = np.arange(2014, 2114)
             # back-up of the simulation results via file saving as and .npy
@@ -750,7 +761,7 @@ def startsim():
             global oc
             oc = int(ui.lineEdit_oc.text())
             global ghg
-            ghg = int(ui.lineEdit_co2.text()) + 28*ch4 + 3.67*oc + 900*bc
+            ghg = int(ui.lineEdit_co2.text())
         except Exception as e:
             print('Wrong format of input has been entered, emissions have to be integers or floats!')
 
@@ -862,11 +873,50 @@ def startsim():
         print('The possible range of changes from -90 % to 450 % was exceeded -> No Simulation possible!')
 
 
+class threadradiogroup(threading.Thread):
+    # thread for saving a difference heatmap (which is on other levels not always possible)
+    # not a continues loop!
+    def __init__(self, threadID, name, counter):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.counter = counter
+
+    def run(self):
+        while(True):
+            if ui.checkBox_permafrost.isChecked():
+                ui.checkBox_ssp2.setCheckable(False)
+                ui.checkBox_ssp1.setCheckable(False)
+                ui.checkBox_ssp19.setCheckable(False)
+            else:
+                ui.checkBox_ssp2.setCheckable(True)
+                ui.checkBox_ssp1.setCheckable(True)
+                ui.checkBox_ssp19.setCheckable(True)
+            if ui.checkBox_ssp2.isChecked() or ui.checkBox_ssp1.isChecked() or ui.checkBox_ssp19.isChecked():
+                ui.checkBox_aeroebe.setCheckable(False)
+                ui.checkBox_anaerobe.setCheckable(False)
+                ui.checkbox_partlyaerobe.setCheckable(False)
+                ui.checkBox_permafrost.setCheckable(False)
+            if ui.checkBox_ssp3.isChecked() or ui.checkBox_ssp5.isChecked():
+                ui.checkBox_aeroebe.setCheckable(True)
+                ui.checkBox_anaerobe.setCheckable(True)
+                ui.checkbox_partlyaerobe.setCheckable(True)
+                ui.checkBox_permafrost.setCheckable(True)
+
+    def stop(self):
+        self._stop.set()
+
+    def stopped(self):
+        return self._stop.isSet()
+
 def main():
     app.setStyleSheet(stylesheet)
     ui.setupUi(MainInput)
     # show Window and execute App
     MainInput.show()
+    threadradiogroup1 = threadradiogroup(1, "Thread-radiogroup", 1)
+    threadradiogroup1.daemon = True
+    threadradiogroup1.start()
     sys.exit(app.exec_())
 
 if __name__ == '__main__':

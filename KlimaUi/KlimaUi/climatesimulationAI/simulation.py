@@ -584,15 +584,10 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
     # partanaeorbe: how many is to be assumed anaerobe of the boreal permafrost when collapsing,
     #   in %, float, HAS EFFECT ONLY IF partly_anaerobe=true!
     # withpermafrost: whether to take the tipping point collapse of the boreal permafrost into account, boolean (default true)
-
     # set outputsize accordingly to the used grid
     if not nccmip6:
         outputsize = 115201
     withcmip6 = nccmip6
-
-    # if only emission data is to be calculated, only input needs to be calculated
-    #if onlyemidata:
-    #onlyindata = True
 
     # if ghg change is given as integer, use that integer for all ghgs
     if type(ghgchanges) != int:
@@ -604,7 +599,7 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
         ghgchanges = ghgchangese
     # check if the model emission range was exceeded
     exceededmodelrange = False
-    for i in range(len(ghgchanges)):
+    for i in range(1,len(ghgchanges)):
         if ghgchanges[i] > 450:
             exceededmodelrange = True
         if ghgchanges[i] < -90:
@@ -617,7 +612,6 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
             if 5 > ghgchanges[i]:
                 if ghgchanges[i] > -0.0001:
                     ghgchanges[i] = 5
-
         over200 = False
         if ghgchanges[1] > 200:
             modelnamesea = 'kalaSST100.h5'
@@ -627,7 +621,6 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
             modelnamesea = 'kalaSST100.h5'
             newsea = False
             over200 = True
-
         years = np.arange(start, end)
         # calculate the future emission development based on the given ghg changes
         future_inputs = np.ones((numberoffeatures, years.size))
@@ -1154,6 +1147,8 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                 output = future_inputs / 1000
 
         return output
+    else:
+        print('Model range was exceeded in simulation.py!')
 
 
 def producetarget6withoutwalks(normdata):
