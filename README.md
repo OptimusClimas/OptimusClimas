@@ -7,3 +7,6 @@ All our models and datasets needed for the GUI are hosted on [Hugging Face](http
 To use the Graphical User Interface of Optimus Climas start ```KlimaUi/ui_OptimusKlimasEntry.py. 
 To reproduce the figures in our publication see figures.ipynb.
 To run your own experiments see manualuse.ipynb.
+
+## Attention
+There are also options for negative emission scenarios, meaning scenarios were the emission increase is negative and therefore the emissions are decreasing, in Optimus Climas. For these negative emission scenarios different models are used, which are not as optimized as those for the positive emission scenarios. Also the simulation is not designed to simulate negative emission scenarios while considering tipping points because tipping points are only going to be triggerd in this model if a certain emission increase is reached. If you try to start a simulation of a negative emission scenario while considering tipping points there will be an error and the simulation won't proceed.
