@@ -4,7 +4,7 @@ This repository contains the code for running the climate model Optimus Climas u
 To set up the needed environment for Optimus Climas, we use ```python>=3.11```. To create the environment use requirements.txt.
 All our models and datasets needed for the GUI are hosted on [Hugging Face](https://huggingface.co/collections/OptimusClimas/files-for-gui-678192abaf887f31d684639e). First create an empty folder named ```models``` in ```KlimaUi/climatesimulationAI``` and an empty folder named ```trainingdata``` in ```KlimaUi/climatesimulationAI/Training/PreProcessing```.Please download the [models](https://huggingface.co/OptimusClimas/models) and put them in ```KlimaUi/climatesimulationAI/models```. Please download the dataset [trainingdata](https://huggingface.co/datasets/OptimusClimas/trainingdata) and put them in ```KlimaUi/climatesimulationAI/Training/PreProcessing/trainingdata```. Please set the working directory to ```YOURLOCALPATH\KlimaUi```.
 
-To use the Graphical User Interface of Optimus Climas start ```KlimaUi/ui_OptimusKlimasEntry.py. 
+To use the Graphical User Interface of Optimus Climas start ```KlimaUi/ui_OptimusKlimasEntry.py```. 
 To reproduce the figures in our publication see figures.ipynb.
 To run your own experiments see manualuse.ipynb.
 
