@@ -3,7 +3,7 @@
 # import of needed libraries
 import numpy as np
 import matplotlib.pyplot as plt
-
+import pandas as pd
 from KlimaUi.climatesimulationAI import simulation
 
 
@@ -37,6 +37,7 @@ def comparisontippingpoints(modelname, onlytrigger=False, nccmip6=True, sea=Fals
     if wais:
         sea = True
     fontsizelabel = 17
+    
     # plots the predictions of a model for different scenarios with and without taking tipping points into account
     if not sea:
         # temperature evaluation
@@ -218,6 +219,15 @@ def comparisontippingpoints(modelname, onlytrigger=False, nccmip6=True, sea=Fals
             plt.ylabel('Rise in mm since 1880', fontsize=fontsizelabel)
 
 
+def rmse(pred, ref):
+    # root mean square error between a prediction and a reference series
+    # both series are cut to the shorter length, so differing lengths don't raise an error
+    pred = np.asarray(pred, dtype=float)
+    ref = np.asarray(ref, dtype=float)
+    n = min(len(pred), len(ref))
+    return float(np.sqrt(np.mean((pred[:n] - ref[:n]) ** 2)))
+
+
 def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=None, actfactore=0.8, nccmip6=False,
                   withconv=False):
     # modelname: filename of the temperature model to be evaluated, string
@@ -234,6 +244,44 @@ def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=N
         u = 55296
     else:
         u = 115200
+
+        # comparison data from AC-SSP (Clyne, Kaltenborn, Nowack et al. 2026) in scenario SSP 5-8.5
+    acssp_585 = np.array([    np.nan, 287.3055, 287.7174, 287.6072, 287.6850, 287.6687, 287.6535,
+             287.7515, 287.8687, 287.9452, 287.9281, 287.8873, 287.9887, 287.8922,
+             287.8052, 287.8077, 288.2756, 287.9176, 287.8686, 287.8796, 288.2068,
+             288.4895, 288.3094, 288.4645, 288.4551, 288.6043, 288.6341, 288.8525,
+             288.5998, 288.4703, 288.5724, 288.7175, 289.0687, 288.7529, 288.9186,
+             289.2954, 289.1680, 289.4060, 289.3069, 289.4037, 289.4236, 289.5782,
+             289.8005, 289.7238, 289.3828, 289.8306, 289.8087, 289.6198, 289.7526,
+             290.0502, 289.9124, 290.2156, 289.9640, 290.3358, 290.4853, 290.7931,
+             290.6207, 290.5571, 290.6600, 290.6107, 290.9875, 290.9047, 290.7757,
+             291.1861, 291.0694, 291.2997, 291.0657, 291.3198, 291.4979, 291.4727,
+             291.8157, 291.7326, 291.8054, 291.9039, 292.2302, 292.1447, 292.1682,
+             291.9789, 292.1664, 292.4657, 292.6799, 292.3438, 292.6275, 292.3598,
+             292.8136])-273.15
+    dates_acssp = pd.DatetimeIndex(['2015-01-01', '2016-01-01', '2017-01-01', '2018-01-01',
+                   '2019-01-01', '2020-01-01', '2021-01-01', '2022-01-01',
+                   '2023-01-01', '2024-01-01', '2025-01-01', '2026-01-01',
+                   '2027-01-01', '2028-01-01', '2029-01-01', '2030-01-01',
+                   '2031-01-01', '2032-01-01', '2033-01-01', '2034-01-01',
+                   '2035-01-01', '2036-01-01', '2037-01-01', '2038-01-01',
+                   '2039-01-01', '2040-01-01', '2041-01-01', '2042-01-01',
+                   '2043-01-01', '2044-01-01', '2045-01-01', '2046-01-01',
+                   '2047-01-01', '2048-01-01', '2049-01-01', '2050-01-01',
+                   '2051-01-01', '2052-01-01', '2053-01-01', '2054-01-01',
+                   '2055-01-01', '2056-01-01', '2057-01-01', '2058-01-01',
+                   '2059-01-01', '2060-01-01', '2061-01-01', '2062-01-01',
+                   '2063-01-01', '2064-01-01', '2065-01-01', '2066-01-01',
+                   '2067-01-01', '2068-01-01', '2069-01-01', '2070-01-01',
+                   '2071-01-01', '2072-01-01', '2073-01-01', '2074-01-01',
+                   '2075-01-01', '2076-01-01', '2077-01-01', '2078-01-01',
+                   '2079-01-01', '2080-01-01', '2081-01-01', '2082-01-01',
+                   '2083-01-01', '2084-01-01', '2085-01-01', '2086-01-01',
+                   '2087-01-01', '2088-01-01', '2089-01-01', '2090-01-01',
+                   '2091-01-01', '2092-01-01', '2093-01-01', '2094-01-01',
+                   '2095-01-01', '2096-01-01', '2097-01-01', '2098-01-01',
+                   '2099-01-01'],
+                  dtype='datetime64[us]', freq='YS-JAN')
 
     if modelname is not None:
         # 0: GHG, 1: CO2, 2: CH4, 3: BC, 4: SO2, 5: OC
@@ -255,12 +303,14 @@ def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=N
                 plt.plot(years, np.array(simpred) - 0.2, 'c')
                 plt.plot(years, np.load("ssp19temp.npy", mmap_mode="r+") - 0.2, 'c', linestyle='--')
                 print('vgl ssp19: ' + str(meandifference(simpred, np.load("ssp19temp.npy", mmap_mode="r+"))))
+                print('rmse ssp19: ' + str(rmse(simpred, np.load("ssp19temp.npy", mmap_mode="r+"))))
                 simpredt = np.array(
                     simulation.pred(ghgchanges=ghgchangesssp126, start=2014, end=2114, modelname=modelname,
                                     method_SST=True, method_Conv=False))
                 simpred = simpredt[:80, u]
                 plt.plot(years, np.array(simpred) - 0.2, 'blue')
                 print('vgl ssp126: ' + str(meandifference(simpred, np.load("ssp126temp.npy", mmap_mode="r+"))))
+                print('rmse ssp126: ' + str(rmse(simpred, np.load("ssp126temp.npy", mmap_mode="r+"))))
                 plt.plot(years, np.load("ssp126temp.npy", mmap_mode="r+") - 0.2, 'blue', linestyle='--')
                 simpredt = np.array(
                     simulation.pred(ghgchanges=ghgchangesssp2, start=2014, end=2114, modelname=modelname,
@@ -268,39 +318,47 @@ def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=N
                 simpred = simpredt[:80, u]
                 plt.plot(years, np.array(simpred) - 0.2, 'orange')
                 print('vgl ssp2: ' + str(meandifference(simpred, np.load("ssp2temp.npy", mmap_mode="r+"))))
+                print('rmse ssp2: ' + str(rmse(simpred, np.load("ssp2temp.npy", mmap_mode="r+"))))
                 plt.plot(years, np.load("ssp2temp.npy", mmap_mode="r+") - 0.2, 'orange', linestyle='--')
                 plt.legend(
                     ['SSP1-1.9 VT', 'SSP1-1.9 IPCC', 'SSP1-2.6 VT', 'SSP1-2.6 IPCC', 'SSP2-4.5 VT', 'SSP2-4.5 IPCC',
                      'SSP3-7.0 VT', 'SSP3-7.0 IPCC', 'SSP5-8.5 VT', 'SSP5-8.5 IPCC'], loc='upper left')
             # predict, plot and calculate deviation to CMIP6 results in positive SSP scenarios
+            # metrics use exactly the curves that are plotted (incl. the -0.2 / +0.75 offsets)
             simpredt = np.array(
                 simulation.pred(ghgchanges=ghgchangesssp3, start=2014, end=2114, modelname=modelname,
                                 method_SST=True, method_Conv=False))[:80]
             simpred = simpredt[:80, u]
-            plt.plot(years, np.array(simpred) - 0.2, 'g')
-            plt.plot(years, np.load("all_ssp3Temperatur.npy", mmap_mode="r+")[:80], 'g', linestyle='--')
+            ssp3_shown_pred = np.array(simpred) - 0.2
+            ssp3_shown_ref = np.load("all_ssp3Temperatur.npy", mmap_mode="r+")[:80]
+            plt.plot(years, ssp3_shown_pred, 'g')
+            plt.plot(years, ssp3_shown_ref, 'g', linestyle='--')
 
-            print('vgl ssp3: ' + str(meandifference(simpred, np.load("ssp3temp.npy", mmap_mode="r+"))))
+            print('vgl ssp3: ' + str(meandifference(ssp3_shown_pred, ssp3_shown_ref)))
+            print('rmse ssp3: ' + str(rmse(ssp3_shown_pred, ssp3_shown_ref)))
             if withconv:
-                plt.plot(np.arange(2020, 2100), np.load('predconvtempglobalssp3.npy', mmap_mode='r+')[:80] + 0.75,
-                         'olive')
-                print('vgl ssp3 with conv: ' + str(
-                    meandifference(np.load('predconvtempglobalssp3.npy', mmap_mode='r+')[:80],
-                                   np.load("ssp3temp.npy", mmap_mode="r+"))))
+                ssp3_shown_conv = np.load('predconvtempglobalssp3.npy', mmap_mode='r+')[:80] + 0.75
+                plt.plot(np.arange(2020, 2100), ssp3_shown_conv, 'olive')
+                print('vgl ssp3 with conv: ' + str(meandifference(ssp3_shown_conv, ssp3_shown_ref)))
+                print('rmse ssp3 with conv: ' + str(rmse(ssp3_shown_conv, ssp3_shown_ref)))
             simpredt = np.array(
                 simulation.pred(ghgchanges=ghgchangesssp5, start=2014, end=2114, modelname=modelname,
                                 method_SST=True, method_Conv=False))
             simpred = simpredt[:80, u]
-            plt.plot(years, np.array(simpred) - 0.2, 'r')
-            plt.plot(years, np.load("ipccSSP5Temperature1.npy", mmap_mode="r+")[:80], 'r', linestyle='--')
-
-            print('vgl ssp5: ' + str(meandifference(simpred, np.load("ssp5temp.npy", mmap_mode="r+"))))
+            ssp5_shown_pred = np.array(simpred) - 0.2
+            ssp5_shown_ref = np.load("ipccSSP5Temperature1.npy", mmap_mode="r+")[:80]
+            plt.plot(years, ssp5_shown_pred, 'r')
+            plt.plot(years, ssp5_shown_ref, 'r', linestyle='--')
+            plt.plot(dates_acssp.year, acssp_585, 'orange')
+            
+            print('vgl ssp5 vs ac-ssp: ' + str(meandifference(acssp_585[5:], ssp5_shown_ref[:])))
+            print('vgl ssp5: ' + str(meandifference(ssp5_shown_pred, ssp5_shown_ref)))
+            print('rmse ssp5: ' + str(rmse(ssp5_shown_pred, ssp5_shown_ref)))
             if withconv:
-                plt.plot(np.arange(2020, 2100), np.load('predconvtempglobalssp5.npy', mmap_mode='r+')[:80] + 0.75,
-                         'maroon')
-                print('vgl ssp5 with conv: ' + str(
-                    meandifference(np.load('predconvtempglobalssp5.npy', mmap_mode='r+')[:80],
-                                   np.load("ssp5temp.npy", mmap_mode="r+"))))
+                ssp5_shown_conv = np.load('predconvtempglobalssp5.npy', mmap_mode='r+')[:80] + 0.75
+                plt.plot(np.arange(2020, 2100), ssp5_shown_conv, 'maroon')
+                print('vgl ssp5 with conv: ' + str(meandifference(ssp5_shown_conv, ssp5_shown_ref)))
+                print('rmse ssp5 with conv: ' + str(rmse(ssp5_shown_conv, ssp5_shown_ref)))
             if not complete:
                 plt.yticks(ticks=(np.arange(14.5, 21, 0.5)))
             else:
@@ -318,7 +376,7 @@ def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=N
             plt.xticks(fontsize=12)
             plt.yticks(fontsize=12)
             if not complete:
-                plt.legend(['SSP3-7.0 VT', 'SSP3-7.0 IPCC', 'SSP5-8.5 VT', 'SSP5-8.5 IPCC'], loc='upper left')
+                plt.legend(['SSP3-7.0 VT', 'SSP3-7.0 IPCC', 'SSP5-8.5 VT', 'SSP5-8.5 IPCC', 'SSP5-8.5 AC-SSP'], loc='upper left')
                 if withconv:
                     plt.legend(['SSP3-7.0 VT', 'SSP3-7.0 IPCC', 'SSP3-7.0 Conv', 'SSP5-8.5 VT', 'SSP5-8.5 IPCC',
                                 'SSP5-8.5 Conv'], loc='upper left')
@@ -327,6 +385,7 @@ def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=N
                     ['SSP1-1.9 VT', 'SSP1-1.9 IPCC', 'SSP1-2.6 VT', 'SSP1-2.6 IPCC', 'SSP2-4.5 VT', 'SSP2-4.5 IPCC',
                      'SSP3-7.0 VT', 'SSP3-7.0 IPCC', 'SSP3-7.0 IPCC error', 'SSP5-8.5 VT',
                      'SSP5-8.5 IPCC', 'SSP5-8.5 IPCC error'], loc='upper left')
+            plt.savefig("eval.jpg",dpi=500)
         else:
             # sea level comparison
             # predict and plot sea level in positive ssp scenarios
@@ -338,14 +397,15 @@ def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=N
             plt.plot(np.arange(2020, 2110), predf[1][6:96], 'g')
             plt.plot(np.arange(2020, 2110), ssp3sealevel, 'g', linestyle='--')
             print(
-                'vgl sea ssp3: ' + str(meandifference(predf[1][6:96], np.load("ssp3sealevel.npy", mmap_mode="r+"))))
+                'vgl sea ssp3: ' + str(meandifference(predf[1][6:96], ssp3sealevel)))
+            print(
+                'rmse sea ssp3: ' + str(rmse(predf[1][6:96], ssp3sealevel)))
 
             if withconv:
-                plt.plot(np.arange(2020, 2100), np.load('predconvseaglobalssp3.npy', mmap_mode='r+')[:80] + 0.75,
-                         'olive')
-                print('vgl ssp3 with conv: ' + str(
-                    meandifference(np.load('predconvglobalssp3.npy', mmap_mode='r+')[:80],
-                                   np.load("ssp3sealevel.npy", mmap_mode="r+"))))
+                ssp3_shown_conv = np.load('predconvseaglobalssp3.npy', mmap_mode='r+')[:80] + 0.75
+                plt.plot(np.arange(2020, 2100), ssp3_shown_conv, 'olive')
+                print('vgl ssp3 with conv: ' + str(meandifference(ssp3_shown_conv, ssp3sealevel)))
+                print('rmse ssp3 with conv: ' + str(rmse(ssp3_shown_conv, ssp3sealevel)))
             predf = simulation.pred(ghgchanges=ghgchangesssp5, start=2014, end=2114, modelname=modelname,
                                     actfactor=actfactore, predsea=True, modelnamesea=modelnamesea)
             ssp5sealevel = np.load('ssp5sealevel.npy', mmap_mode='r+')
@@ -354,13 +414,14 @@ def comparisonssp(modelname=None, complete=False, sealevel=False, modelnamesea=N
             plt.plot(np.arange(2020, 2110), predf[1][6:96], 'r')
             plt.plot(np.arange(2020, 2110), ssp5sealevel, 'r', linestyle='--')
             print('vgl sea ssp5: ' + str(
-                meandifference(predf[1][6:96], np.load("ssp5sealevel.npy", mmap_mode="r+"))))
+                meandifference(predf[1][6:96], ssp5sealevel)))
+            print('rmse sea ssp5: ' + str(
+                rmse(predf[1][6:96], ssp5sealevel)))
             if withconv:
-                plt.plot(np.arange(2020, 2100), np.load('predconvseaglobalssp5.npy', mmap_mode='r+')[:80] + 0.75,
-                         'maroon')
-                print('vgl ssp5 with conv: ' + str(
-                    meandifference(np.load('predconvglobalssp5.npy', mmap_mode='r+')[:80],
-                                   np.load("ssp5sealevel.npy", mmap_mode="r+"))))
+                ssp5_shown_conv = np.load('predconvseaglobalssp5.npy', mmap_mode='r+')[:80] + 0.75
+                plt.plot(np.arange(2020, 2100), ssp5_shown_conv, 'maroon')
+                print('vgl ssp5 with conv: ' + str(meandifference(ssp5_shown_conv, ssp5sealevel)))
+                print('rmse ssp5 with conv: ' + str(rmse(ssp5_shown_conv, ssp5sealevel)))
             plt.fill_between(np.arange(2020, 2110), ssp3sealevellow, ssp3sealevelhigh, color='g', alpha=.1)
             plt.fill_between(np.arange(2020, 2110), ssp5sealevellow, ssp5sealevelhigh, color='red', alpha=.1)
             plt.title('sea level simulation in SSP scenarios in comparison', fontsize=17)

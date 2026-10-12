@@ -614,10 +614,10 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
 
         # loading minima and maxima from training data
         maxtrainreal = np.load(
-            os.path.join('KlimaUI', 'climatesimulationAI', 'ForPreprocessing', 'max_train.npy'),
+            os.path.join('KlimaUi', 'climatesimulationAI', 'ForPreprocessing', 'max_train.npy'),
             mmap_mode='r+')
         mintrainreal = np.load(
-            os.path.join('KlimaUI', 'climatesimulationAI', 'ForPreprocessing', 'min_train.npy'),
+            os.path.join('KlimaUi', 'climatesimulationAI', 'ForPreprocessing', 'min_train.npy'),
             mmap_mode='r+')
         # calculate combined GAF for model input
         X = preprocessing(future_inputs, years, gafsize, numberoffeatures, actfactor,None,maxtrainreal, mintrainreal)
@@ -635,18 +635,18 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                 if withtippingpoints:
                     frederike = Training.buildSST(gafsize=gafsize, outputsize=outputsize, printsum=False,
                                                   modelname=modelname, features=X, new=False)
-                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelnametippingpoints)
+                    frederike.load_weights('KlimaUi/climatesimulationAI/models/' + modelnametippingpoints)
                 else:
                     frederike = Training.buildSST(gafsize=gafsize, outputsize=outputsize, printsum=False,
                                                   modelname=modelname, features=X, new=buildnew)
-                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelname)
+                    frederike.load_weights('KlimaUi/climatesimulationAI/models/' + modelname)
             elif method_Conv:
                 # build model using CNN architecture
                 frederike = Training.buildConv(gafsize=gafsize, inputshape=X[0].shape, printsum=False)
                 if withtippingpoints:
-                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelnametippingpoints)
+                    frederike.load_weights('KlimaUi/climatesimulationAI/models/' + modelnametippingpoints)
                 else:
-                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelname)
+                    frederike.load_weights('KlimaUi/climatesimulationAI/models/' + modelname)
 
             # init variables
             temperature_pred = np.ones((X[:, 0, 0, 0].size, outputsize))
@@ -868,16 +868,16 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                 if over200:
                     frederike = Training.buildSST(gafsize=gafsize, outputsize=outputsize, printsum=False,
                                                   modelname=modelname, features=X, new=False)
-                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelnametippingpoints)
+                    frederike.load_weights('KlimaUi/climatesimulationAI/models/' + modelnametippingpoints)
                 else:
                     frederike = Training.buildSST(gafsize=gafsize, outputsize=55297, printsum=False,
                                                   modelname=modelnametippingpoints, features=Xnew, new=buildnew)
-                    frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelname)
+                    frederike.load_weights('KlimaUi/climatesimulationAI/models/' + modelname)
                 temperature_pred = frederike.predict(Xnew)
                 temperature_pred_old = frederike.predict(oldX)
                 frederike = Training.buildSST(gafsize=gafsize, outputsize=115201, printsum=False,
                                               modelname="FrederikeSSTGADFGRIBwithact88.h5", features=Xnew, new=False)
-                frederike.load_weights('KlimaUI/climatesimulationAI/models/' + "FrederikeSSTGADFGRIBwithact88.h5")
+                frederike.load_weights('KlimaUi/climatesimulationAI/models/' + "FrederikeSSTGADFGRIBwithact88.h5")
                 temperature_pred[:, 55296] = frederike.predict(Xnew)[:, 115200]
                 temperature_pred_old[:, 55296] = frederike.predict(oldX)[:, 115200]
 
@@ -889,14 +889,14 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                         frederike = Training.buildSST(gafsize=gafsize, outputsize=outputsize, printsum=False,
                                                       modelname=modelname, features=X, new=False)
                         frederike.load_weights(
-                            'KlimaUI/climatesimulationAI/models/' + modelnametippingpoints)
+                            'KlimaUi/climatesimulationAI/models/' + modelnametippingpoints)
                         temperature_pred = frederike.predict(X)
                     else:
                         pass
                     frederike = Training.buildSST(gafsize=gafsize, outputsize=115201, printsum=False,
                                                   modelname="FrederikeSSTGADFGRIBwithact88.h5", features=X, new=False)
                     frederike.load_weights(
-                        'KlimaUI/climatesimulationAI/models/' + "FrederikeSSTGADFGRIBwithact88.h5")
+                        'KlimaUi/climatesimulationAI/models/' + "FrederikeSSTGADFGRIBwithact88.h5")
                     temperature_pred[:, 55296] = frederike.predict(X)[:, 115200]
                     temperature_pred_old = copy.deepcopy(temperature_pred)
                     temperature_pred_old[:, 55296] = frederike.predict(oldX)[:, 115200]
@@ -908,7 +908,7 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
             temperature_denorm = np.ones((years.size, temperature_pred[0, :].size))
             cmip6postproc = True
             startvalue1 = np.load('KlimaUi/climatesimulationAI/Training/PreProcessing/trainingdata/train_data_1880_2014.npy',mmap_mode='r+')[:, 83] - 273.15
-            startvaluenonawi = np.load('KlimaUI/climatesimulationAI/Training/PreProcessing/trainingdata/train_data_2014_2100_ssp2.npy',mmap_mode='r+')[:, 83] - 273.15
+            startvaluenonawi = np.load('KlimaUi/climatesimulationAI/Training/PreProcessing/trainingdata/train_data_2014_2100_ssp2.npy',mmap_mode='r+')[:, 83] - 273.15
 
             for i in range(temperature_pred[0, :].size):
                 if i < temperature_pred[0, :].size - 1:
@@ -1069,7 +1069,7 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                         tempgribmaped = temperature_norm[:, :outputsize - 1].reshape(temperature_norm[:, 0].size, lo,
                                                                                      la, 1)
                         # build sea level simulation model (taking into account regionalised temperature)
-                        kala = Training.buildSST(gafsize=gafsize, outputsize=1, printsum=False, modelname=modelnamesea,
+                        kala = Training.buildSST(gafsize=gafsize, outputsize=1, printsum=True, modelname=modelnamesea,
                                                  features=[X, tempgribmaped], new=True, sea=False, seasea=newsea)
                         kala.load_weights('KlimaUi/climatesimulationAI/models/' + modelnamesea)
                     else:

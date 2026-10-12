@@ -614,10 +614,10 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
 
         # loading minima and maxima from training data
         maxtrainreal = np.load(
-            os.path.join('KlimaUI', 'climatesimulationAI', 'ForPreprocessing', 'max_train.npy'),
+            os.path.join('KlimaUi', 'climatesimulationAI', 'ForPreprocessing', 'max_train.npy'),
             mmap_mode='r+')
         mintrainreal = np.load(
-            os.path.join('KlimaUI', 'climatesimulationAI', 'ForPreprocessing', 'min_train.npy'),
+            os.path.join('KlimaUi', 'climatesimulationAI', 'ForPreprocessing', 'min_train.npy'),
             mmap_mode='r+')
         # calculate combined GAF for model input
         X = preprocessing(future_inputs, years, gafsize, numberoffeatures, actfactor,None,maxtrainreal, mintrainreal)
@@ -637,7 +637,7 @@ def pred(ghgchanges, start=2014, end=2114, numberofghgs=6,
                                                   modelname=modelname, features=X, new=False)
                     frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelnametippingpoints)
                 else:
-                    frederike = Training.buildSST(gafsize=gafsize, outputsize=outputsize, printsum=False,
+                    frederike = Training.buildSST(gafsize=gafsize, outputsize=outputsize, printsum=True, # False
                                                   modelname=modelname, features=X, new=buildnew)
                     frederike.load_weights('KlimaUI/climatesimulationAI/models/' + modelname)
             elif method_Conv:
